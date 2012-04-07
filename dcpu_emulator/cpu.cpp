@@ -27,7 +27,7 @@ word_t* literals;
 
 Cpu::Cpu(void)
 {
-	DEBUG = true;
+	DEBUG = false;
 
 	// Setup literals
 	literals = new word_t[ARG_LITERAL_END - ARG_LITERAL_START];
@@ -63,7 +63,8 @@ Cpu::~Cpu(void)
 
 int Cpu::run(std::string filename)
 {
-	
+	clearScreen();
+
 	FILE * program = fopen(filename.c_str(), "r");
 
 	if (!program) {
@@ -247,7 +248,7 @@ int Cpu::run(std::string filename)
 			if (aLoc == &programCounter && result == executingPC
 				&& ((opcode == OP_SET && getArgument(instruction, 1) == ARG_NEXTWORD)
 				|| (opcode == OP_SUB && getArgument(instruction, 1) == ARG_LITERAL_START + 1))) {
-					std::cout << "SYSTEM HALTED" << std::endl;
+					std::cout << "SYSTEM HALTED!" << std::endl;
 					return -1;
 			}
 
@@ -266,17 +267,34 @@ int Cpu::run(std::string filename)
 
 		// TODO: Update video memory
 		if (videoDirty) {
-			videoDirty = true;
+			clearScreen();
+			for (int i = 0; i < TERM_HEIGHT; i++) {
+				for (int j = 0; j < TERM_WIDTH; j++) {
+					word_t toPrint = memory[CONSOLE_START + i * TERM_WIDTH + j];
+					// Print word a 1 char
+					int colorData = toPrint >> 7;		// TODO: Not used yet
+					char letter = (toPrint & 0x7F);
+
+					if (letter == '\0') {
+						letter = ' ';
+					}
+
+					std::cout << letter;
+				}
+
+				std::cout << std::endl;
+			}
+			videoDirty = false;
 		}
 
-		/*
-        printf("====CYCLE 0x%04hx====\n", cycle);
+		setCursorPos(1, TERM_HEIGHT + 1);
+        printf("==== Program Status - CYCLE 0x%04hx====\n", cycle);
         printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n", registers[0], registers[1], registers[2]);
         printf("X:  0x%04hx\tY:  0x%04hx\tZ:  0x%04hx\n", registers[3], registers[4], registers[5]);
         printf("I:  0x%04hx\tJ:  0x%04hx\n", registers[6], registers[7]);
         printf("PC: 0x%04hx\tSP: 0x%04hx\tO:  0x%04hx\n", programCounter, stackPointer, overflow);
         printf("Instruction: 0x%04hx\n", instruction);
-		*/
+	
 	}
 
 
@@ -476,4 +494,30 @@ word_t Cpu::getNextWordOffset(instruction_t instruction, bool_t which)
 
 		return 1 + (which && usesNextWord(getArgument(instruction, 0)));
 	}
+}
+
+void Cpu::setCursorPos(int x, int y)
+{
+	COORD pos  = {x, y};
+	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	SetConsoleCursorPosition(console, pos);
+}
+
+void Cpu::clearScreen()
+{
+	  COORD topLeft  = { 0, 0 };
+    HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO screen;
+    DWORD written;
+
+    GetConsoleScreenBufferInfo(console, &screen);
+    FillConsoleOutputCharacterA(
+        console, ' ', screen.dwSize.X * screen.dwSize.Y, topLeft, &written
+    );
+    FillConsoleOutputAttribute(
+        console, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE,
+        screen.dwSize.X * screen.dwSize.Y, topLeft, &written
+    );
+    SetConsoleCursorPosition(console, topLeft);
 }

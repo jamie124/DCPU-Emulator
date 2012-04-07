@@ -1,4 +1,4 @@
-﻿Build started 08-Apr-12 12:37:20 AM.
+﻿Build started 08-Apr-12 1:14:41 AM.
      1>Project "C:\Users\James Whitwell\Documents\Visual Studio 2010\Projects\dcpu_emulator\dcpu_emulator\dcpu_emulator.vcxproj" on node 2 (clean target(s)).
      1>_PrepareForClean:
          Deleting file "Debug\dcpu_emulator.lastbuildstate".
@@ -6,4 +6,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:00.03
+Time Elapsed 00:00:00.02

@@ -10,6 +10,7 @@ Started 7-Apr-2012
 #pragma once
 
 #include <iostream>
+#include <Windows.h>
 
 typedef unsigned short word_t;
 typedef word_t instruction_t;
@@ -87,5 +88,7 @@ public:
 	static instruction_t setOpcode(instruction_t instruction, opcode_t opcode);
 	static instruction_t setArgument(instruction_t instruction, bool_t which, argument_t argument);
 
+	void setCursorPos(int x, int y);
+	void clearScreen();
 };
 
