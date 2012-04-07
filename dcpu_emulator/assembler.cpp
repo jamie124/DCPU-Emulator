@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
+
 Assembler::Assembler(void)
 {
 }
@@ -308,9 +309,20 @@ argumentStruct_t Assembler::argumentFor(char* arg)
 	return toReturn;
 }
 
+char *replace(char *st, char *orig, char *repl) {
+	static char buffer[4096];
+	char *ch;
+	if (!(ch = strstr(st, orig)))
+		return st;
+	strncpy(buffer, st, ch-st);  
+	buffer[ch-st] = 0;
+	sprintf(buffer+(ch-st), "%s%s", repl, ch+strlen(orig));
+	return buffer;
+}
+
 int Assembler::compile(char* filename)
 {
-	char* compiledFilename = "demo2.obj";
+	char* compiledFilename = replace(filename, "asm", "obj");
 
 	FILE* sourceFile = fopen(filename, "r");
 
@@ -393,7 +405,7 @@ int Assembler::compile(char* filename)
 					fscanf(sourceFile, " ");
 
 					int nextChar = fgetc(sourceFile);
-					if (nextChar = '"') {
+					if (nextChar == '"') {
 						std::cout << "Reading string." << std::endl;
 
 						bool_t escaped = 0;

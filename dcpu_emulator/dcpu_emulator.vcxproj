@@ -75,6 +75,7 @@
   <ItemGroup>
     <None Include="demo.asm" />
     <None Include="demo2.asm" />
+    <None Include="hello.asm" />
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>

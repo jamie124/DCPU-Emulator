@@ -75,32 +75,6 @@ int Cpu::run(std::string filename)
 	//fread(memory, sizeof(word_t), MEMORY_LIMIT, program);
 	fread(memory, sizeof(word_t), MEMORY_LIMIT, program);
 	fclose(program);
-	
-	
-	/*
-	std::ifstream indata; // indata is like cin
-	int num; // variable for input value
-	indata.open("demo.asm"); // opens the file
-
-	if(!indata) { // file couldn't be opened
-		std::cerr << "Error: file could not be opened" << std::endl;
-		exit(1);
-	}
-
-    char line[100];
-
-	while (!indata.eof())
-    {
-      indata >> line;
-	  std::cout << line << std::endl;
-
-    }
-
-	indata.close();
-	std::cout << "End-of-file reached.." << std::endl;
-	*/
-
-	//return 0;
 
 	bool videoDirty = false;
 
@@ -295,12 +269,14 @@ int Cpu::run(std::string filename)
 			videoDirty = true;
 		}
 
+		/*
         printf("====CYCLE 0x%04hx====\n", cycle);
         printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n", registers[0], registers[1], registers[2]);
         printf("X:  0x%04hx\tY:  0x%04hx\tZ:  0x%04hx\n", registers[3], registers[4], registers[5]);
         printf("I:  0x%04hx\tJ:  0x%04hx\n", registers[6], registers[7]);
         printf("PC: 0x%04hx\tSP: 0x%04hx\tO:  0x%04hx\n", programCounter, stackPointer, overflow);
         printf("Instruction: 0x%04hx\n", instruction);
+		*/
 	}
 
 
