@@ -15,13 +15,13 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	Assembler* assembler = new Assembler();
 
-	assembler->compile("simple.asm");
+	assembler->compile("notch.asm");
 
 	delete assembler;
 
 	Cpu* cpu = new Cpu();
 
-	cpu->run("simple.obj");
+	cpu->run("notch.obj");
 
 	delete cpu;
 

@@ -337,12 +337,15 @@ int Assembler::compile(char* filename)
 		std::cout << "ERROR: Could not open " << filename << std::endl;
 	}
 
+	bool foundComment = false;
+
 	word_t address = 0;
 
 	assembledInstruction_t* head = NULL;
 	assembledInstruction_t* tail = NULL;
 
 	while (1) {
+
 		fscanf(sourceFile, " ");		// Consume whitespace
 
 		int nextChar = fgetc(sourceFile);
@@ -375,8 +378,16 @@ int Assembler::compile(char* filename)
 
 		// Read the command
 		if (fscanf(sourceFile, "%s", command) == 1) {
+
 			// Add new instruction
 			//assembledInstruction_t* instruction = (assembledInstruction_t*) malloc(sizeof(assembledInstruction_t));
+	
+			int i = 0;
+			while (command[i] != '\0') {
+				command[i] = tolower(command[i]);
+				i++;
+			}
+
 			assembledInstruction_t* instruction = new assembledInstruction_t;
 			if (head == NULL) {
 				head = instruction;
@@ -390,12 +401,7 @@ int Assembler::compile(char* filename)
 			instruction->address = address;
 			instruction->label = label;
 			instruction->data = NULL;
-
-			int i = 0;
-			while (command[i] != '\0') {
-				command[i] = tolower(command[i]);
-				i++;
-			}
+			
 
 			if (!strcmp(command, "dat")) {
 				instruction->data = (word_t*) malloc(MAX_CHARS * sizeof(word_t));
@@ -491,94 +497,106 @@ int Assembler::compile(char* filename)
 
 				address += instruction->dataLength;
 			} else if (fscanf(sourceFile, " %s", arg1) == 1) {
-				i = 0;
 
-				bool preserveArg = false;
-				char tempArg[MAX_CHARS], preservedArg[MAX_CHARS];
-				int j = 0, temp = 0;
+				if (!foundComment) {
 
-				int len = strlen(arg1);
+					i = 0;
 
-				memcpy(tempArg, arg1, len + 1);
+					bool preserveArg = false;
+					char tempArg[MAX_CHARS], preservedArg[MAX_CHARS];
+					int j = 0, temp = 0;
 
-				while (arg1[i] != '\0') {
-					if (arg1[i] == ',') {
-						if (arg1[i + 1] != '\0') {
-							// No space between ',' and second arg
-							preserveArg = true;
-							// Store index of ','
-							j = i + 1;
-						}
+					int len = strlen(arg1);
 
-						arg1[i] = '\0';
+					memcpy(tempArg, arg1, len + 1);
 
-						continue;
-					} 
+					while (arg1[i] != '\0') {
+						if (arg1[i] == ',') {
+							if (arg1[i + 1] != '\0') {
+								// No space between ',' and second arg
+								preserveArg = true;
+								// Store index of ','
+								j = i + 1;
+							}
 
-					arg1[i] = tolower(arg1[i]);
-					i++;
-				}
+							arg1[i] = '\0';
 
-				if (preserveArg) {
-					// Get second argument now if needed
-					while (tempArg[j] != '\0') {
+							continue;
+						} 
 
-						preservedArg[temp] = tempArg[j];
-
-						temp++;
-						j++;
+						arg1[i] = tolower(arg1[i]);
+						i++;
 					}
 
-					preservedArg[temp] = '\0';
-				}
+					if (preserveArg) {
+						// Get second argument now if needed
+						while (tempArg[j] != '\0') {
 
-				std::cout << "Argument 1: " << arg1 << std::endl;
+							preservedArg[temp] = tempArg[j];
 
-				// Determine opcode
-				instruction->opcode = opcodeFor(command);
-				//std::cout << "Basic opcode: " << instruction->opcode << std::endl;
-				printf("Basic opcode: %d\n", instruction->opcode);
+							temp++;
+							j++;
+						}
 
-				instruction->a = argumentFor(arg1);
+						preservedArg[temp] = '\0';
+					}
 
-				// Advance address
-				address++;
+					std::cout << "Argument 1: " << arg1 << std::endl;
 
-				if (Cpu::usesNextWord(instruction->a.argument)) {
+					// Determine opcode
+					instruction->opcode = opcodeFor(command);
+					//std::cout << "Basic opcode: " << instruction->opcode << std::endl;
+					printf("Basic opcode: %d\n", instruction->opcode);
+
+					instruction->a = argumentFor(arg1);
+
+					// Advance address
 					address++;
-				}
 
-				if (instruction->opcode == OP_NONBASIC) {
-					// No second argument
-					instruction->b = instruction->a;
-
-					instruction->a.argument = (argument_t) nonbasicOpcodeFor(command);
-					instruction->a.labelReference = NULL;
-
-					std::cout << "Non-basic opcode: " << instruction->a.argument << std::endl;
-				} else {
-					// Second argument
-					if (!preserveArg) {
-						if (fscanf(sourceFile, "%s", arg2) != 1) {
-							std::cout << " ERROR: Missing second argument for " << command << " (got " << arg2 << ")" << std::endl;
-							return -1;
-						}
-
-						i = 0;
-						while (arg2[i] != '\0') {
-							arg2[i] = tolower(arg2[i]);
-							i++;
-						}
-
-						instruction->b = argumentFor(arg2);
-
-					} else {
-						instruction->b = argumentFor(preservedArg);
-					}
-
-					if (Cpu::usesNextWord(instruction->b.argument)) {
+					if (Cpu::usesNextWord(instruction->a.argument)) {
 						address++;
 					}
+
+					if (instruction->opcode == OP_NONBASIC) {
+						// No second argument
+						instruction->b = instruction->a;
+
+						instruction->a.argument = (argument_t) nonbasicOpcodeFor(command);
+						instruction->a.labelReference = NULL;
+
+						std::cout << "Non-basic opcode: " << instruction->a.argument << std::endl;
+					} else {
+						// Second argument
+						if (!preserveArg) {
+							if (fscanf(sourceFile, "%s", arg2) != 1) {
+								std::cout << " ERROR: Missing second argument for " << command << " (got " << arg2 << ")" << std::endl;
+								return -1;
+							}
+
+							i = 0;
+							while (arg2[i] != '\0') {
+								arg2[i] = tolower(arg2[i]);
+								i++;
+
+								// Check for badly placed comment
+								if (arg2[i] == ';') {
+									foundComment = true;
+									arg2[i] = '\0';
+								}
+							}
+
+							instruction->b = argumentFor(arg2);
+
+						} else {
+							instruction->b = argumentFor(preservedArg);
+						}
+
+						if (Cpu::usesNextWord(instruction->b.argument)) {
+							address++;
+						}
+					}
+				} else {
+					foundComment = false;
 				}
 			}
 		} else {
@@ -671,4 +689,9 @@ int Assembler::compile(char* filename)
 			break;
 		}
 	} 
+}
+
+void Assembler::processCommand(char* command, assembledInstruction_t* instruction)
+{
+
 }

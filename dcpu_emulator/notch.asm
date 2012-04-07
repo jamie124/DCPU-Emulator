@@ -2,7 +2,7 @@
 ;Should compile fine, by default
 
 ;Try some basic stuff
-		SET A, 0x30				; 7c01 0030
+		SET A, 0x30 ; 7c01 0030
 		SET [0x1000], 0x20		; 7de1 1000 0020
 		SUB A, [0x1000]			; 7803 1000
 		IFN A, 0x10				; c00d 
@@ -37,14 +37,14 @@
 		ifn a, [0x1000]				; Compare value of register a to memory at 0x1000 ..
 			set PC, end				; .. and jump to end if they don't match
 
-		set i, 0; Init loop counter, for clarity
+		set i, 0					; Init loop counter, for clarity
 :nextchar
-		ife [data+i]				, 0; If the character is 0 ..
+		ife [data+i], 0 ; If the character is 0 ..
 		set PC, end					; .. jump to the end
 		set [0x8000+i], [data+i]	; Video ram starts at 0x8000, copy char there
 		add i, 1					; Increase loop counter
 		set PC, nextchar			; Loop
   
-:data	dat "Hello world!", 0; Zero terminated string
+:data	dat "Hello world!", 0 ; Zero terminated string
 
-:end	sub PC, 1; Freeze the CPU forever
+:end	sub PC, 1 ; Freeze the CPU forever

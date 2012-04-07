@@ -30,6 +30,7 @@ private:
 	int registerFor(char regName);
 	argumentStruct_t argumentFor(char* arg);
 
+	void processCommand(char* command, assembledInstruction_t* instruction);
 
 public:
 	Assembler(void);
