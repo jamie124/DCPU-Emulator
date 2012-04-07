@@ -456,6 +456,10 @@ int Assembler::compile(char* filename)
 					} else {
 						int nextNextChar = fgetc(sourceFile);
 
+						if (nextNextChar == -1) {
+							break;
+						}
+
 						// Unget last 2 characters
 						fseek(sourceFile, -2, SEEK_CUR);
 
@@ -478,6 +482,7 @@ int Assembler::compile(char* filename)
 							std::cout << "Out of literals" << std::endl;
 							break;
 						}
+
 					}
 
 					// Consume comma

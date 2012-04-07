@@ -77,6 +77,7 @@
     <None Include="demo2.asm" />
     <None Include="hello.asm" />
     <None Include="ReadMe.txt" />
+    <None Include="terminal.asm" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="assembler.h" />

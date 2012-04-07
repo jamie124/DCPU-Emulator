@@ -25,6 +25,9 @@
     <None Include="hello.asm">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="terminal.asm">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

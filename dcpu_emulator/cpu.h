@@ -70,6 +70,9 @@ class Cpu
 private:
 	bool DEBUG;
 
+	bool STEP_MODE;
+	bool RUNNING;
+
 	word_t* evaluateArgument(argument_t argument);
 
 	opcode_t getOpcode(instruction_t instruction);

@@ -12,6 +12,6 @@ set a, 0xbeef                        ; Assign 0xbeef to register a
              add i, 1                             ; Increase loop counter
              set PC, nextchar                     ; Loop
   
-:data        dat "Hello world!", 0
+:data        dat "Hello world!\n"
 
 :end         sub PC, 1                            ; Freeze the CPU forever

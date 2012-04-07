@@ -269,7 +269,7 @@ int Cpu::run(std::string filename)
 		if (videoDirty) {
 			clearScreen();
 			for (int i = 0; i < TERM_HEIGHT; i++) {
-				for (int j = 0; j < TERM_WIDTH; j++) {
+				for (int j = 0; j < TERM_WIDTH; j +=1) {
 					word_t toPrint = memory[CONSOLE_START + i * TERM_WIDTH + j];
 					// Print word a 1 char
 					int colorData = toPrint >> 7;		// TODO: Not used yet
@@ -294,9 +294,8 @@ int Cpu::run(std::string filename)
         printf("I:  0x%04hx\tJ:  0x%04hx\n", registers[6], registers[7]);
         printf("PC: 0x%04hx\tSP: 0x%04hx\tO:  0x%04hx\n", programCounter, stackPointer, overflow);
         printf("Instruction: 0x%04hx\n", instruction);
-	
-	}
 
+	}
 
 	return 1;
 }
