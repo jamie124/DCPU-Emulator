@@ -1,7 +1,7 @@
 ;Some examples of compiler code that should compile fine.
 ;I had added my reasoning for each one
 
-:start	set [a],	5		;uses tabs
+:start	set [a], 5		;uses tabs
         set b, 5        ;uses spaces
 
 		set a, 5		;case is not important
@@ -15,4 +15,4 @@
 		dat 3, 5, 6		;of both types
 		
 		set a,	5		;number of spaces should be no issue
-:end	set a,5
+:end	set a, 5

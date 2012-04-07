@@ -376,227 +376,56 @@ int Assembler::compile(char* filename)
 			label = NULL;
 		}
 
+		assembledInstruction_t* instruction = new assembledInstruction_t;
+
 		// Read the command
 		if (fscanf(sourceFile, "%s", command) == 1) {
 
 			// Add new instruction
 			//assembledInstruction_t* instruction = (assembledInstruction_t*) malloc(sizeof(assembledInstruction_t));
-	
-			int i = 0;
-			while (command[i] != '\0') {
-				command[i] = tolower(command[i]);
-				i++;
-			}
 
-			assembledInstruction_t* instruction = new assembledInstruction_t;
-			if (head == NULL) {
-				head = instruction;
-				tail = instruction;
+			processCommand(sourceFile, command, address, label, head, tail, instruction);
+
+		} 
+		
+		if (fscanf(sourceFile, " %s", arg1) == 1) {
+
+			opcode_t opcode = processArg1(sourceFile, command, arg1, address, label, instruction);
+
+			if (opcode == OP_NONBASIC) {
+				// No second argument
+				instruction->b = instruction->a;
+
+				instruction->a.argument = (argument_t) nonbasicOpcodeFor(command);
+				instruction->a.labelReference = NULL;
+
+				std::cout << "Non-basic opcode: " << instruction->a.argument << std::endl;
 			} else {
-				tail->next = instruction;
-				tail = tail->next;
-			}
+				// Second argument
 
-			instruction->next = NULL;
-			instruction->address = address;
-			instruction->label = label;
-			instruction->data = NULL;
-			
-
-			if (!strcmp(command, "dat")) {
-				instruction->data = (word_t*) malloc(MAX_CHARS * sizeof(word_t));
-				instruction->dataLength = 0;
-
-				while(1) {
-					fscanf(sourceFile, " ");
-
-					int nextChar = fgetc(sourceFile);
-					if (nextChar == '"') {
-						std::cout << "Reading string." << std::endl;
-
-						bool_t escaped = 0;
-						while(1) {
-							nextChar = fgetc(sourceFile);
-							char toPut;
-
-							if (escaped) {
-								// Escape translation
-								switch(nextChar) {
-								case 'n':
-									toPut = '\n';
-									break;
-
-								case 't':
-									toPut = '\t';
-									break;
-
-								case '\\':
-									toPut = '\\';
-									break;
-
-								case '"':
-									toPut = '"';
-									break;
-
-								default:
-									std::cout << "ERROR: Unrecognized escape sequence " << nextChar << std::endl;
-									return -1;
-								}
-
-								escaped = 0;
-							} else if (nextChar == '"') {
-								break;
-							} else if (nextChar == '\\') {
-								escaped = 1;
-								continue;
-							} else {
-								// Normal character
-								toPut = nextChar;
-							}
-
-							instruction->data[instruction->dataLength++] = toPut;
-							std::cout << toPut;
-						}
-
-						std::cout << std::endl;
-					} else {
-						int nextNextChar = fgetc(sourceFile);
-
-						if (nextNextChar == -1) {
-							break;
-						}
-
-						// Unget last 2 characters
-						fseek(sourceFile, -2, SEEK_CUR);
-
-						if (nextChar == '0' && nextNextChar == 'x') {
-							// Hex literal
-							std::cout << "Reading hex literal" << std::endl;
-
-							if (!fscanf(sourceFile, "0x%hx", &instruction->data[instruction->dataLength]) == 1) {
-								std::cout << "ERROR: Expected hex literal" << std::endl;
-								return -1;
-							}
-
-							instruction->dataLength++;
-						} else if(fscanf(sourceFile, "%hu", &instruction->data[instruction->dataLength]) ==1) {
-							// Decimal literal
-							std::cout << "Reading decimal literal" << std::endl;
-							instruction->dataLength++;
-						} else {
-							// Not a real literal
-							std::cout << "Out of literals" << std::endl;
-							break;
-						}
-
-					}
-
-					// Consume comma
-					fscanf(sourceFile, ",");
+				if (fscanf(sourceFile, "%s", arg2) != 1) {
+					std::cout << " ERROR: Missing second argument for " << command << " (got " << arg2 << ")" << std::endl;
+					return -1;
 				}
 
-				address += instruction->dataLength;
-			} else if (fscanf(sourceFile, " %s", arg1) == 1) {
+				int i = 0;
+				while (arg2[i] != '\0') {
+					arg2[i] = tolower(arg2[i]);
+					i++;
 
-				if (!foundComment) {
-
-					i = 0;
-
-					bool preserveArg = false;
-					char tempArg[MAX_CHARS], preservedArg[MAX_CHARS];
-					int j = 0, temp = 0;
-
-					int len = strlen(arg1);
-
-					memcpy(tempArg, arg1, len + 1);
-
-					while (arg1[i] != '\0') {
-						if (arg1[i] == ',') {
-							if (arg1[i + 1] != '\0') {
-								// No space between ',' and second arg
-								preserveArg = true;
-								// Store index of ','
-								j = i + 1;
-							}
-
-							arg1[i] = '\0';
-
-							continue;
-						} 
-
-						arg1[i] = tolower(arg1[i]);
-						i++;
+					// Check for badly placed comment
+					if (arg2[i] == ';') {
+						foundComment = true;
+						arg2[i] = '\0';
 					}
+				}
 
-					if (preserveArg) {
-						// Get second argument now if needed
-						while (tempArg[j] != '\0') {
+				instruction->b = argumentFor(arg2);
 
-							preservedArg[temp] = tempArg[j];
 
-							temp++;
-							j++;
-						}
 
-						preservedArg[temp] = '\0';
-					}
-
-					std::cout << "Argument 1: " << arg1 << std::endl;
-
-					// Determine opcode
-					instruction->opcode = opcodeFor(command);
-					//std::cout << "Basic opcode: " << instruction->opcode << std::endl;
-					printf("Basic opcode: %d\n", instruction->opcode);
-
-					instruction->a = argumentFor(arg1);
-
-					// Advance address
+				if (Cpu::usesNextWord(instruction->b.argument)) {
 					address++;
-
-					if (Cpu::usesNextWord(instruction->a.argument)) {
-						address++;
-					}
-
-					if (instruction->opcode == OP_NONBASIC) {
-						// No second argument
-						instruction->b = instruction->a;
-
-						instruction->a.argument = (argument_t) nonbasicOpcodeFor(command);
-						instruction->a.labelReference = NULL;
-
-						std::cout << "Non-basic opcode: " << instruction->a.argument << std::endl;
-					} else {
-						// Second argument
-						if (!preserveArg) {
-							if (fscanf(sourceFile, "%s", arg2) != 1) {
-								std::cout << " ERROR: Missing second argument for " << command << " (got " << arg2 << ")" << std::endl;
-								return -1;
-							}
-
-							i = 0;
-							while (arg2[i] != '\0') {
-								arg2[i] = tolower(arg2[i]);
-								i++;
-
-								// Check for badly placed comment
-								if (arg2[i] == ';') {
-									foundComment = true;
-									arg2[i] = '\0';
-								}
-							}
-
-							instruction->b = argumentFor(arg2);
-
-						} else {
-							instruction->b = argumentFor(preservedArg);
-						}
-
-						if (Cpu::usesNextWord(instruction->b.argument)) {
-							address++;
-						}
-					}
-				} else {
-					foundComment = false;
 				}
 			}
 		} else {
@@ -688,10 +517,198 @@ int Assembler::compile(char* filename)
 
 			break;
 		}
-	} 
+	}
 }
 
-void Assembler::processCommand(char* command, assembledInstruction_t* instruction)
+// Process the command
+int Assembler::processCommand(FILE *sourceFile, char* command, word_t address, char* label, assembledInstruction_t* head,  assembledInstruction_t* tail, assembledInstruction_t* instruction)
 {
+	int i = 0;
+	while (command[i] != '\0') {
+		command[i] = tolower(command[i]);
+		i++;
+	}
+
+	if (head == NULL) {
+		head = instruction;
+		tail = instruction;
+	} else {
+		tail->next = instruction;
+		tail = tail->next;
+	}
+
+	instruction->next = NULL;
+	instruction->address = address;
+	instruction->label = label;
+	instruction->data = NULL;
+
+	if (!strcmp(command, "dat")) {
+		instruction->data = (word_t*) malloc(MAX_CHARS * sizeof(word_t));
+		instruction->dataLength = 0;
+
+		while(1) {
+			fscanf(sourceFile, " ");
+
+			int nextChar = fgetc(sourceFile);
+			if (nextChar == '"') {
+				std::cout << "Reading string." << std::endl;
+
+				bool_t escaped = 0;
+				while(1) {
+					nextChar = fgetc(sourceFile);
+					char toPut;
+
+					if (escaped) {
+						// Escape translation
+						switch(nextChar) {
+						case 'n':
+							toPut = '\n';
+							break;
+
+						case 't':
+							toPut = '\t';
+							break;
+
+						case '\\':
+							toPut = '\\';
+							break;
+
+						case '"':
+							toPut = '"';
+							break;
+
+						default:
+							std::cout << "ERROR: Unrecognized escape sequence " << nextChar << std::endl;
+							return -1;
+						}
+
+						escaped = 0;
+					} else if (nextChar == '"') {
+						break;
+					} else if (nextChar == '\\') {
+						escaped = 1;
+						continue;
+					} else {
+						// Normal character
+						toPut = nextChar;
+					}
+
+					instruction->data[instruction->dataLength++] = toPut;
+					std::cout << toPut;
+				}
+
+				std::cout << std::endl;
+			} else {
+				int nextNextChar = fgetc(sourceFile);
+
+				if (nextNextChar == -1) {
+					break;
+				}
+
+				// Unget last 2 characters
+				fseek(sourceFile, -2, SEEK_CUR);
+
+				if (nextChar == '0' && nextNextChar == 'x') {
+					// Hex literal
+					std::cout << "Reading hex literal" << std::endl;
+
+					if (!fscanf(sourceFile, "0x%hx", &instruction->data[instruction->dataLength]) == 1) {
+						std::cout << "ERROR: Expected hex literal" << std::endl;
+						return -1;
+					}
+
+					instruction->dataLength++;
+				} else if(fscanf(sourceFile, "%hu", &instruction->data[instruction->dataLength]) ==1) {
+					// Decimal literal
+					std::cout << "Reading decimal literal" << std::endl;
+					instruction->dataLength++;
+				} else {
+					// Not a real literal
+					std::cout << "Out of literals" << std::endl;
+					break;
+				}
+
+			}
+
+			// Consume comma
+			fscanf(sourceFile, ",");
+		}
+
+		address += instruction->dataLength;
+	}
+
+	return 1;
+}
+
+// Process argument 1
+opcode_t Assembler::processArg1(FILE *sourceFile, char* command, char* arg1, word_t address, char* label, assembledInstruction_t* instruction)
+{
+	int i = 0;
+
+	if (arg1[0] == ';'){
+		return -1;
+	}
+
+	bool preserveArg = false;
+	char tempArg[MAX_CHARS], preservedArg[MAX_CHARS];
+	int j = 0, temp = 0;
+
+	int len = strlen(arg1);
+
+	memcpy(tempArg, arg1, len + 1);
+
+	while (arg1[i] != '\0') {
+		if (arg1[i] == ',') {
+			/*
+			if (arg1[i + 1] != '\0') {
+			// No space between ',' and second arg
+			preserveArg = true;
+			// Store index of ','
+			j = i + 1;
+			}
+			*/
+
+			arg1[i] = '\0';
+
+			continue;
+		} 
+
+		arg1[i] = tolower(arg1[i]);
+		i++;
+	}
+
+	/*
+	if (preserveArg) {
+	// Get second argument now if needed
+	while (tempArg[j] != '\0') {
+
+	preservedArg[temp] = tempArg[j];
+
+	temp++;
+	j++;
+	}
+
+	preservedArg[temp] = '\0';
+	}
+	*/
+
+	std::cout << "Argument 1: " << arg1 << std::endl;
+
+	// Determine opcode
+	instruction->opcode = opcodeFor(command);
+	//std::cout << "Basic opcode: " << instruction->opcode << std::endl;
+	printf("Basic opcode: %d\n", instruction->opcode);
+
+	instruction->a = argumentFor(arg1);
+
+	// Advance address
+	address++;
+
+	if (Cpu::usesNextWord(instruction->a.argument)) {
+		address++;
+	}
+
+	// Return the opcode so it can be determined if arg2 is needed
+	return instruction->opcode;
 
 }

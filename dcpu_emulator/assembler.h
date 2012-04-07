@@ -30,7 +30,8 @@ private:
 	int registerFor(char regName);
 	argumentStruct_t argumentFor(char* arg);
 
-	void processCommand(char* command, assembledInstruction_t* instruction);
+	int processCommand(FILE *sourceFile, char* command, word_t address, char* label, assembledInstruction_t* head,  assembledInstruction_t* tail, assembledInstruction_t* instruction);
+	opcode_t processArg1(FILE *sourceFile, char* command, char* arg1, word_t address, char* label, assembledInstruction_t* instruction);
 
 public:
 	Assembler(void);
