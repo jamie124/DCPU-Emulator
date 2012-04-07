@@ -233,7 +233,7 @@ argumentStruct_t Assembler::argumentFor(char* arg)
 				return toReturn;
 			}
 
-			// Store lable
+			// Store label
 			char* label = (char*) malloc((labelEnd - labelStart) + 1);
 			strncpy(label, labelStart, (labelEnd - labelStart));
 			label[labelEnd - labelStart] = '\0';
@@ -493,14 +493,43 @@ int Assembler::compile(char* filename)
 			} else if (fscanf(sourceFile, " %s", arg1) == 1) {
 				i = 0;
 
+				bool preserveArg = false;
+				char tempArg[MAX_CHARS], preservedArg[MAX_CHARS];
+				int j = 0, temp = 0;
+
+				int len = strlen(arg1);
+
+				memcpy(tempArg, arg1, len + 1);
+
 				while (arg1[i] != '\0') {
-					if (arg1[i] == ',' && arg1[i + 1] == '\0') {
+					if (arg1[i] == ',') {
+						if (arg1[i + 1] != '\0') {
+							// No space between ',' and second arg
+							preserveArg = true;
+							// Store index of ','
+							j = i + 1;
+						}
+
 						arg1[i] = '\0';
+
 						continue;
-					}
+					} 
 
 					arg1[i] = tolower(arg1[i]);
 					i++;
+				}
+
+				if (preserveArg) {
+					// Get second argument now if needed
+					while (tempArg[j] != '\0') {
+
+						preservedArg[temp] = tempArg[j];
+
+						temp++;
+						j++;
+					}
+
+					preservedArg[temp] = '\0';
 				}
 
 				std::cout << "Argument 1: " << arg1 << std::endl;
@@ -529,18 +558,23 @@ int Assembler::compile(char* filename)
 					std::cout << "Non-basic opcode: " << instruction->a.argument << std::endl;
 				} else {
 					// Second argument
-					if (fscanf(sourceFile, "%s", arg2) != 1) {
-						std::cout << " ERROR: Missing second argument for " << command << " (got " << arg2 << ")" << std::endl;
-						return -1;
-					}
+					if (!preserveArg) {
+						if (fscanf(sourceFile, "%s", arg2) != 1) {
+							std::cout << " ERROR: Missing second argument for " << command << " (got " << arg2 << ")" << std::endl;
+							return -1;
+						}
 
-					i = 0;
-					while (arg2[i] != '\0') {
-						arg2[i] = tolower(arg2[i]);
-						i++;
-					}
+						i = 0;
+						while (arg2[i] != '\0') {
+							arg2[i] = tolower(arg2[i]);
+							i++;
+						}
 
-					instruction->b = argumentFor(arg2);
+						instruction->b = argumentFor(arg2);
+
+					} else {
+						instruction->b = argumentFor(preservedArg);
+					}
 
 					if (Cpu::usesNextWord(instruction->b.argument)) {
 						address++;

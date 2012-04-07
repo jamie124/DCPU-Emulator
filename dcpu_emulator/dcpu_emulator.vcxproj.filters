@@ -28,6 +28,18 @@
     <None Include="terminal.asm">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="os_test.asm">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="rain.asm">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="notch.asm">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="simple.asm">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

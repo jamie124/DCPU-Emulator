@@ -76,7 +76,11 @@
     <None Include="demo.asm" />
     <None Include="demo2.asm" />
     <None Include="hello.asm" />
+    <None Include="notch.asm" />
+    <None Include="os_test.asm" />
+    <None Include="rain.asm" />
     <None Include="ReadMe.txt" />
+    <None Include="simple.asm" />
     <None Include="terminal.asm" />
   </ItemGroup>
   <ItemGroup>
