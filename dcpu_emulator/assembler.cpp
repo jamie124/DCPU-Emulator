@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "assembler.h"
 #include <iostream>
+#include <fstream>
 #include <string.h>
 #include <stdio.h>
 
@@ -310,7 +311,7 @@ argumentStruct_t Assembler::argumentFor(char* arg)
 }
 
 char *replace(char *st, char *orig, char *repl) {
-	static char buffer[4096];
+	char buffer[MAX_CHARS];
 	char *ch;
 	if (!(ch = strstr(st, orig)))
 		return st;
@@ -324,11 +325,15 @@ int Assembler::compile(char* filename)
 {
 	char* compiledFilename = replace(filename, "asm", "obj");
 
+	/*
 	FILE* sourceFile = fopen(filename, "r");
 
 	if (!sourceFile) {
-		std::cout << "ERROR: Could not open " << filename << std::endl;
+	std::cout << "ERROR: Could not open " << filename << std::endl;
 	}
+	*/
+
+	std::ifstream sourceFile(filename);
 
 	// TODO: Add automatic file naming
 	FILE* compiledFile = fopen(compiledFilename, "w");
@@ -337,6 +342,9 @@ int Assembler::compile(char* filename)
 		std::cout << "ERROR: Could not open " << filename << std::endl;
 	}
 
+	char lineBuffer[MAX_CHARS];
+	//std::string line;
+
 	bool foundComment = false;
 
 	word_t address = 0;
@@ -344,171 +352,201 @@ int Assembler::compile(char* filename)
 	assembledInstruction_t* head = NULL;
 	assembledInstruction_t* tail = NULL;
 
+	char* label;			
+
 	while (1) {
 
-		fscanf(sourceFile, " ");		// Consume whitespace
-
-		int nextChar = fgetc(sourceFile);
-		if (nextChar == ';') {
-			// Comment, ignore rest of line
-			while (nextChar != EOF && nextChar != '\n') {
-				nextChar = fgetc(sourceFile);
-			}
-			continue;
-		} else {
-			ungetc(nextChar, sourceFile);
-		}
-
-		char* label;
 		char command[MAX_CHARS], arg1[MAX_CHARS], arg2[MAX_CHARS];
 
-		// Find labels
-		label = (char*) malloc(MAX_CHARS);
-		if (fscanf(sourceFile, ":%s ", label) == 1) {
+		// Read line into buffer
+		//fgets(lineBuffer, MAX_CHARS, sourceFile);		
+
+
+		if (sourceFile.getline(lineBuffer, MAX_CHARS).eof()) {
+			return 1;
+		}
+
+		//std::cout << lineBuffer << std::endl;
+
+		char* temp = cleanString(lineBuffer);
+
+		std::cout << temp << std::endl;
+
+
+		// Check if whole line is a blank
+		if (strlen(temp) == 0) {
+			std::cout << "Blank line, skipping whole line" << std::endl;
+
+		} else {
+			// Non blank line, start processing
+
+			// Get label if applicable
+			if (lineBuffer[0] == ':') {
+				label = (char*) malloc(MAX_CHARS);
+
+				processLine(lineBuffer, label, command, arg1, arg2, true);
+
+			} else {
+				label = NULL;
+
+				processLine(lineBuffer, label, command, arg1, arg2, false);
+			}
+
+			if (label != NULL) {
+				std::cout << "label: " << label << " " << std::endl; 
+			}
+
+			std::cout << "command: " << command << " arg1: " << arg1 << " arg2: " << arg2 << std::endl;
+
+			/*
+			label = (char*) malloc(MAX_CHARS);
+			if (fscanf(sourceFile, ":%s ", label) == 1) {
 			// Make it lowercase
 			int i = 0;
 			while (label[i] != '\0') {
-				label[i] = tolower(label[i]);
-				i++;
+			label[i] = tolower(label[i]);
+			i++;
 			}
-		} else {
+			} else {
 			free(label);
 			label = NULL;
-		}
+			}
+			*/
 
-		assembledInstruction_t* instruction = new assembledInstruction_t;
+			/*
+			assembledInstruction_t* instruction = new assembledInstruction_t;
 
-		// Read the command
-		if (fscanf(sourceFile, "%s", command) == 1) {
+			// Read the command
+			if (fscanf(sourceFile, "%s", command) == 1) {
 
 			// Add new instruction
 			//assembledInstruction_t* instruction = (assembledInstruction_t*) malloc(sizeof(assembledInstruction_t));
 
 			processCommand(sourceFile, command, address, label, head, tail, instruction);
 
-		} 
-		
-		if (fscanf(sourceFile, " %s", arg1) == 1) {
+			} 
+
+			if (fscanf(sourceFile, " %s", arg1) == 1) {
 
 			opcode_t opcode = processArg1(sourceFile, command, arg1, address, label, instruction);
 
 			if (opcode == OP_NONBASIC) {
-				// No second argument
-				instruction->b = instruction->a;
+			// No second argument
+			instruction->b = instruction->a;
 
-				instruction->a.argument = (argument_t) nonbasicOpcodeFor(command);
-				instruction->a.labelReference = NULL;
+			instruction->a.argument = (argument_t) nonbasicOpcodeFor(command);
+			instruction->a.labelReference = NULL;
 
-				std::cout << "Non-basic opcode: " << instruction->a.argument << std::endl;
+			std::cout << "Non-basic opcode: " << instruction->a.argument << std::endl;
 			} else {
-				// Second argument
+			// Second argument
 
-				if (fscanf(sourceFile, "%s", arg2) != 1) {
-					std::cout << " ERROR: Missing second argument for " << command << " (got " << arg2 << ")" << std::endl;
-					return -1;
-				}
-
-				int i = 0;
-				while (arg2[i] != '\0') {
-					arg2[i] = tolower(arg2[i]);
-					i++;
-
-					// Check for badly placed comment
-					if (arg2[i] == ';') {
-						foundComment = true;
-						arg2[i] = '\0';
-					}
-				}
-
-				instruction->b = argumentFor(arg2);
-
-
-
-				if (Cpu::usesNextWord(instruction->b.argument)) {
-					address++;
-				}
+			if (fscanf(sourceFile, "%s", arg2) != 1) {
+			std::cout << " ERROR: Missing second argument for " << command << " (got " << arg2 << ")" << std::endl;
+			return -1;
 			}
-		} else {
+
+			int i = 0;
+			while (arg2[i] != '\0') {
+			arg2[i] = tolower(arg2[i]);
+			i++;
+
+			// Check for badly placed comment
+			if (arg2[i] == ';') {
+			foundComment = true;
+			arg2[i] = '\0';
+			}
+			}
+
+			instruction->b = argumentFor(arg2);
+
+
+
+			if (Cpu::usesNextWord(instruction->b.argument)) {
+			address++;
+			}
+			}
+			} else {
 			std::cout << "No more valid codes" << std::endl;
 
 			fclose(sourceFile);
 
 			// Assemble binary code
 			for (assembledInstruction_t* instruction = head; instruction != NULL; instruction = instruction->next) {
-				std::cout << "Assembling for address " << instruction->address << std::endl;
+			std::cout << "Assembling for address " << instruction->address << std::endl;
 
-				if (instruction->data != NULL) {
-					continue;
-				}
+			if (instruction->data != NULL) {
+			continue;
+			}
 
-				// Label reference for A
-				if (instruction->a.labelReference != NULL) {
-					std::cout << "Unresolved label for a: " << instruction->a.labelReference << std::endl;
+			// Label reference for A
+			if (instruction->a.labelReference != NULL) {
+			std::cout << "Unresolved label for a: " << instruction->a.labelReference << std::endl;
 
-					for (assembledInstruction_t* other = head; other != NULL; other = other->next) {
-						if (other->label != NULL && !strcmp(other->label, instruction->a.labelReference)) {
-							// Match
-							std::cout << "Resolved " << instruction->a.labelReference << " to address " << other->address << std::endl;
-							instruction->a.nextWord = other->address;
-							instruction->a.labelReference = NULL;
-							break;
-						}
-					}
-				}
+			for (assembledInstruction_t* other = head; other != NULL; other = other->next) {
+			if (other->label != NULL && !strcmp(other->label, instruction->a.labelReference)) {
+			// Match
+			std::cout << "Resolved " << instruction->a.labelReference << " to address " << other->address << std::endl;
+			instruction->a.nextWord = other->address;
+			instruction->a.labelReference = NULL;
+			break;
+			}
+			}
+			}
 
-				// Label reference for B
-				if (instruction->b.labelReference != NULL) {
-					std::cout << "Unresolved label for b: " << instruction->b.labelReference << std::endl;
+			// Label reference for B
+			if (instruction->b.labelReference != NULL) {
+			std::cout << "Unresolved label for b: " << instruction->b.labelReference << std::endl;
 
-					for (assembledInstruction_t* other = head; other != NULL; other = other->next) {
-						if (other->label != NULL && !strcmp(other->label, instruction->b.labelReference)) {
-							// Match
-							std::cout << "Resolved " << instruction->b.labelReference << " to address " << other->address << std::endl;
-							instruction->b.nextWord = other->address;
-							instruction->b.labelReference = NULL;
-							break;
-						}
-					}
-				}
+			for (assembledInstruction_t* other = head; other != NULL; other = other->next) {
+			if (other->label != NULL && !strcmp(other->label, instruction->b.labelReference)) {
+			// Match
+			std::cout << "Resolved " << instruction->b.labelReference << " to address " << other->address << std::endl;
+			instruction->b.nextWord = other->address;
+			instruction->b.labelReference = NULL;
+			break;
+			}
+			}
+			}
 
-				// Any references left?
-				if (instruction->a.labelReference != NULL) {
-					std::cout << "Unresolved label for a: " << instruction->b.labelReference << std::endl;
-					return -1;
-				}
+			// Any references left?
+			if (instruction->a.labelReference != NULL) {
+			std::cout << "Unresolved label for a: " << instruction->b.labelReference << std::endl;
+			return -1;
+			}
 
-				if (instruction->b.labelReference != NULL) {
-					std::cout << "Unresolved label for b: " << instruction->b.labelReference << std::endl;
-					return -1;
-				}
+			if (instruction->b.labelReference != NULL) {
+			std::cout << "Unresolved label for b: " << instruction->b.labelReference << std::endl;
+			return -1;
+			}
 			}
 
 			// Write out code
 			for (assembledInstruction_t* instruction = head; instruction != NULL; instruction = instruction->next) {
-				if (instruction->data != NULL) {
-					std::cout << "DATA: " << instruction->dataLength << " words" << std::endl;
-					fwrite(instruction->data, sizeof(word_t), instruction->dataLength, compiledFile);
-					continue;
-				}
+			if (instruction->data != NULL) {
+			std::cout << "DATA: " << instruction->dataLength << " words" << std::endl;
+			fwrite(instruction->data, sizeof(word_t), instruction->dataLength, compiledFile);
+			continue;
+			}
 
-				instruction_t packed = 0;
-				packed = Cpu::setOpcode(packed, instruction->opcode);
-				packed = Cpu::setArgument(packed, 0, instruction->a.argument);
-				packed = Cpu::setArgument(packed, 1, instruction->b.argument);
+			instruction_t packed = 0;
+			packed = Cpu::setOpcode(packed, instruction->opcode);
+			packed = Cpu::setArgument(packed, 0, instruction->a.argument);
+			packed = Cpu::setArgument(packed, 1, instruction->b.argument);
 
-				// Save instruction
-				std::cout << address << ": Assembled instruction: " << packed << std::endl;
-				fwrite(&packed, sizeof(instruction_t), 1, compiledFile);
+			// Save instruction
+			std::cout << address << ": Assembled instruction: " << packed << std::endl;
+			fwrite(&packed, sizeof(instruction_t), 1, compiledFile);
 
-				if (instruction->opcode != OP_NONBASIC && Cpu::usesNextWord(instruction->a.argument)) {
-					std::cout << ++address << ": Extra Word A: " << instruction->a.nextWord << std::endl;
-					fwrite(&(instruction->a.nextWord), sizeof(word_t), 1, compiledFile);
-				}
+			if (instruction->opcode != OP_NONBASIC && Cpu::usesNextWord(instruction->a.argument)) {
+			std::cout << ++address << ": Extra Word A: " << instruction->a.nextWord << std::endl;
+			fwrite(&(instruction->a.nextWord), sizeof(word_t), 1, compiledFile);
+			}
 
-				if (Cpu::usesNextWord(instruction->b.argument)) {
-					std::cout << ++address << ": Extra Word B: " << instruction->b.nextWord << std::endl;
-					fwrite(&(instruction->b.nextWord), sizeof(word_t), 1, compiledFile);
-				}
+			if (Cpu::usesNextWord(instruction->b.argument)) {
+			std::cout << ++address << ": Extra Word B: " << instruction->b.nextWord << std::endl;
+			fwrite(&(instruction->b.nextWord), sizeof(word_t), 1, compiledFile);
+			}
 			}
 
 			std::cout << "Program compiled successfully." << std::endl;
@@ -516,8 +554,151 @@ int Assembler::compile(char* filename)
 			fclose(compiledFile);
 
 			break;
+			}
+			*/
 		}
 	}
+}
+
+// Remove any extra characters to make line easier to parse
+char* Assembler::cleanString(char *rawLine)
+{
+	char temp[MAX_CHARS];
+	int tempIndex = 0, rawIndex = 0;
+
+	if (rawLine[0] != ';') {
+
+		bool removingDuplicates = false;
+		bool skippingChars = false;
+
+		if (rawLine[0] == ' ' || rawLine[0] == '\t') {
+			skippingChars = true;
+		}
+
+		while (rawLine[rawIndex] != ';' && rawLine[rawIndex] != '\0') {
+			if (rawLine[rawIndex] >= 65 && rawLine[rawIndex] < 123) {
+				skippingChars = false;
+			}
+
+			if (!skippingChars){
+				if (rawLine[rawIndex] == '\t') {
+					// Replace tab with space
+					temp[tempIndex++] = ' ';
+				} else {
+					temp[tempIndex++] = rawLine[rawIndex];
+				}
+			}
+
+			rawIndex++;
+		}
+
+	}
+	temp[tempIndex] = '\0';
+
+	//removeDuplicates(temp);
+
+	return temp;
+}
+
+int Assembler::processLine(char *currentLine, char *&label, char *command, char *arg1, char *arg2, bool containsLabel)
+{
+	int lineIndex = 0;						// Current position in line
+	int itemIndex = 0;						// Current position in item being stored
+
+	if (containsLabel) {
+		// Don't include ':' in lable
+		lineIndex++;
+
+		// Read in until either a space or end of line is found
+		while (currentLine[lineIndex] != ' '  && currentLine[lineIndex] != '\t' && currentLine[lineIndex] != '\n') {
+			label[itemIndex++] = currentLine[lineIndex++]; 
+		}
+
+		label[itemIndex++] = '\0';
+
+	}
+
+	itemIndex = 0;
+
+	lineIndex++;
+
+	// Check if label is on the same line as first statement
+	if ((currentLine[lineIndex] >= 32 && currentLine[lineIndex] < 127) && 
+		(currentLine[lineIndex] != ' ' || currentLine[lineIndex] != '\t')) {
+			// Will be a alpha character, either lower or upper case.
+			while (currentLine[lineIndex] != ' ') {
+				command[itemIndex++] = currentLine[lineIndex++];
+			}
+	} else {
+		lineIndex = 0;
+		while (currentLine[lineIndex] == ' ' || currentLine[lineIndex] == '\t') {
+			lineIndex++;
+		}
+
+		while (currentLine[lineIndex] != ' ' || currentLine[lineIndex] == '\t') {
+			command[itemIndex++] = currentLine[lineIndex++];
+		}
+	}
+
+
+	command[itemIndex++] = '\0';
+
+	itemIndex = 0;
+
+	lineIndex++;
+
+	// Find first arg
+	if ((currentLine[lineIndex] >= 65 && currentLine[lineIndex] < 123) || currentLine[lineIndex] == '[') {
+		while (currentLine[lineIndex] != ',') {
+			if (currentLine[lineIndex] == '\0') {
+				// ',' was not found
+				std::cout << "\",\" not found." << std::endl;
+
+				return -1;
+			}
+
+			arg1[itemIndex++] = currentLine[lineIndex++];
+
+		}
+	}
+
+	arg1[itemIndex++] = '\0';
+
+	itemIndex = 0;
+
+	// Find second arg, optional
+	// Find start of second arg
+	bool hasArg2 = false;
+
+	if (currentLine[lineIndex] == ',') {
+		// Check next character for ',' indicating a second arg
+		hasArg2 = true;
+	} else {
+		while (currentLine[lineIndex] == ' ' && currentLine[lineIndex] != '\0' ) {
+			lineIndex++;
+		}
+		if (currentLine[lineIndex] == ','){
+			hasArg2 = true;
+		}
+	}
+
+	if (hasArg2){
+		while (currentLine[lineIndex] <= 48 || currentLine[lineIndex] >= 123) {
+			lineIndex++;
+		}
+
+		while (currentLine[lineIndex] != ' ' && currentLine[lineIndex] != '\t' && currentLine[lineIndex] != '\n'){
+
+			arg2[itemIndex++] = currentLine[lineIndex++];
+		}
+
+
+		arg2[itemIndex++] = '\0';
+	} else {
+		arg2[0] = '\0';
+	}
+
+	itemIndex = 0;
 }
 
 // Process the command
@@ -659,14 +840,6 @@ opcode_t Assembler::processArg1(FILE *sourceFile, char* command, char* arg1, wor
 
 	while (arg1[i] != '\0') {
 		if (arg1[i] == ',') {
-			/*
-			if (arg1[i + 1] != '\0') {
-			// No space between ',' and second arg
-			preserveArg = true;
-			// Store index of ','
-			j = i + 1;
-			}
-			*/
 
 			arg1[i] = '\0';
 
@@ -676,21 +849,6 @@ opcode_t Assembler::processArg1(FILE *sourceFile, char* command, char* arg1, wor
 		arg1[i] = tolower(arg1[i]);
 		i++;
 	}
-
-	/*
-	if (preserveArg) {
-	// Get second argument now if needed
-	while (tempArg[j] != '\0') {
-
-	preservedArg[temp] = tempArg[j];
-
-	temp++;
-	j++;
-	}
-
-	preservedArg[temp] = '\0';
-	}
-	*/
 
 	std::cout << "Argument 1: " << arg1 << std::endl;
 
