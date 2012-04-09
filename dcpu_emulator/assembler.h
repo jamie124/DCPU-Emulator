@@ -31,10 +31,11 @@ private:
 	argumentStruct_t argumentFor(char* arg);
 
 	char* cleanString(char *rawLine);
-	int processLine(char *currentLine, char *&label, char *command, char *arg1, char *arg2, bool containsLabel);
+	int processLine(char *currentLine, char *data, char *label, char *command, char *arg1, char *arg2, bool containsLabel);
 
-	int processCommand(FILE *sourceFile, char* command, word_t address, char* label, assembledInstruction_t* head,  assembledInstruction_t* tail, assembledInstruction_t* instruction);
-	opcode_t processArg1(FILE *sourceFile, char* command, char* arg1, word_t address, char* label, assembledInstruction_t* instruction);
+	int processCommand(char* command, char* data, word_t address, char* label, assembledInstruction_t* head,  assembledInstruction_t* tail, assembledInstruction_t* instruction);
+	void processArg1(char* command, char* arg1, word_t address, char* label, assembledInstruction_t* instruction);
+	void processArg2(char* command, char* arg1, word_t address, char* label, assembledInstruction_t* instruction);
 
 public:
 	Assembler(void);

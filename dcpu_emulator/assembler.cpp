@@ -352,11 +352,19 @@ int Assembler::compile(char* filename)
 	assembledInstruction_t* head = NULL;
 	assembledInstruction_t* tail = NULL;
 
-	char* label;			
+	char command[MAX_CHARS], label[MAX_CHARS], arg1[MAX_CHARS], arg2[MAX_CHARS], data[MAX_CHARS];
+
 
 	while (1) {
 
-		char command[MAX_CHARS], arg1[MAX_CHARS], arg2[MAX_CHARS];
+		// Reset variables
+		for (int i = 0; i < MAX_CHARS; i++) {
+			data[i] = '\0';
+			label[i] = '\0';
+			command[i] = '\0';
+			arg1[i] = '\0';
+			arg2[i] = '\0';
+		}
 
 		// Read line into buffer
 		//fgets(lineBuffer, MAX_CHARS, sourceFile);		
@@ -370,8 +378,7 @@ int Assembler::compile(char* filename)
 
 		char* temp = cleanString(lineBuffer);
 
-		std::cout << temp << std::endl;
-
+		//std::cout << temp << std::endl;
 
 		// Check if whole line is a blank
 		if (strlen(temp) == 0) {
@@ -381,37 +388,29 @@ int Assembler::compile(char* filename)
 			// Non blank line, start processing
 
 			// Get label if applicable
-			if (lineBuffer[0] == ':') {
-				label = (char*) malloc(MAX_CHARS);
+			if (temp[0] == ':') {
+				//label = (char*) malloc(MAX_CHARS * sizeof(char));
 
-				processLine(lineBuffer, label, command, arg1, arg2, true);
+				processLine(temp, data, label, command, arg1, arg2, true);
 
 			} else {
-				label = NULL;
+				//label = NULL;
 
-				processLine(lineBuffer, label, command, arg1, arg2, false);
+				processLine(temp, data, label, command, arg1, arg2, false);
 			}
 
-			if (label != NULL) {
+			if (label[0] != '\0') {
 				std::cout << "label: " << label << " " << std::endl; 
 			}
 
-			std::cout << "command: " << command << " arg1: " << arg1 << " arg2: " << arg2 << std::endl;
+			std::cout << "command: " << command << " arg1: " << arg1 << " arg2: " << arg2 << " dat: " << data << std::endl;
 
-			/*
-			label = (char*) malloc(MAX_CHARS);
-			if (fscanf(sourceFile, ":%s ", label) == 1) {
-			// Make it lowercase
-			int i = 0;
-			while (label[i] != '\0') {
-			label[i] = tolower(label[i]);
-			i++;
-			}
-			} else {
-			free(label);
-			label = NULL;
-			}
-			*/
+			assembledInstruction_t* instruction = new assembledInstruction_t;
+			 
+			processCommand(command, data, address, label, head, tail, instruction);
+
+			processArg1(command, arg1, address, label, instruction);
+			processArg2(command, arg2, address, label, instruction);
 
 			/*
 			assembledInstruction_t* instruction = new assembledInstruction_t;
@@ -600,7 +599,8 @@ char* Assembler::cleanString(char *rawLine)
 	return temp;
 }
 
-int Assembler::processLine(char *currentLine, char *&label, char *command, char *arg1, char *arg2, bool containsLabel)
+// Split up 
+int Assembler::processLine(char *currentLine, char *data, char *label, char *command, char *arg1, char *arg2, bool containsLabel)
 {
 	int lineIndex = 0;						// Current position in line
 	int itemIndex = 0;						// Current position in item being stored
@@ -616,11 +616,14 @@ int Assembler::processLine(char *currentLine, char *&label, char *command, char 
 
 		label[itemIndex++] = '\0';
 
+		// Consume whitespace between label and command if needed
+		lineIndex++;
+
 	}
 
 	itemIndex = 0;
 
-	lineIndex++;
+	//lineIndex++;
 
 	// Check if label is on the same line as first statement
 	if ((currentLine[lineIndex] >= 32 && currentLine[lineIndex] < 127) && 
@@ -687,7 +690,8 @@ int Assembler::processLine(char *currentLine, char *&label, char *command, char 
 			lineIndex++;
 		}
 
-		while (currentLine[lineIndex] != ' ' && currentLine[lineIndex] != '\t' && currentLine[lineIndex] != '\n'){
+		while (currentLine[lineIndex] != '\0' && currentLine[lineIndex] != ' ' 
+			&& currentLine[lineIndex] != '\t' && currentLine[lineIndex] != '\n'){
 
 			arg2[itemIndex++] = currentLine[lineIndex++];
 		}
@@ -702,9 +706,10 @@ int Assembler::processLine(char *currentLine, char *&label, char *command, char 
 }
 
 // Process the command
-int Assembler::processCommand(FILE *sourceFile, char* command, word_t address, char* label, assembledInstruction_t* head,  assembledInstruction_t* tail, assembledInstruction_t* instruction)
+int Assembler::processCommand(char* command, char *data, word_t address, char* label, assembledInstruction_t* head,  assembledInstruction_t* tail, assembledInstruction_t* instruction)
 {
-	int i = 0;
+	int i = 0, index = 0;
+
 	while (command[i] != '\0') {
 		command[i] = tolower(command[i]);
 		i++;
@@ -728,15 +733,14 @@ int Assembler::processCommand(FILE *sourceFile, char* command, word_t address, c
 		instruction->dataLength = 0;
 
 		while(1) {
-			fscanf(sourceFile, " ");
 
-			int nextChar = fgetc(sourceFile);
+			int nextChar = data[index++];
 			if (nextChar == '"') {
 				std::cout << "Reading string." << std::endl;
 
 				bool_t escaped = 0;
 				while(1) {
-					nextChar = fgetc(sourceFile);
+					nextChar = data[index++];
 					char toPut;
 
 					if (escaped) {
@@ -780,26 +784,26 @@ int Assembler::processCommand(FILE *sourceFile, char* command, word_t address, c
 
 				std::cout << std::endl;
 			} else {
-				int nextNextChar = fgetc(sourceFile);
+				int nextNextChar = data[index++];
 
 				if (nextNextChar == -1) {
 					break;
 				}
 
-				// Unget last 2 characters
-				fseek(sourceFile, -2, SEEK_CUR);
-
 				if (nextChar == '0' && nextNextChar == 'x') {
+					// Revert back 2 chars.
+					data[index - 2];
+
 					// Hex literal
 					std::cout << "Reading hex literal" << std::endl;
 
-					if (!fscanf(sourceFile, "0x%hx", &instruction->data[instruction->dataLength]) == 1) {
+					if (!sscanf(data, "0x%hx", &instruction->data[instruction->dataLength]) == 1) {
 						std::cout << "ERROR: Expected hex literal" << std::endl;
 						return -1;
 					}
 
 					instruction->dataLength++;
-				} else if(fscanf(sourceFile, "%hu", &instruction->data[instruction->dataLength]) ==1) {
+				} else if(sscanf(data, "%hu", &instruction->data[instruction->dataLength]) == 1) {
 					// Decimal literal
 					std::cout << "Reading decimal literal" << std::endl;
 					instruction->dataLength++;
@@ -811,8 +815,6 @@ int Assembler::processCommand(FILE *sourceFile, char* command, word_t address, c
 
 			}
 
-			// Consume comma
-			fscanf(sourceFile, ",");
 		}
 
 		address += instruction->dataLength;
@@ -822,13 +824,9 @@ int Assembler::processCommand(FILE *sourceFile, char* command, word_t address, c
 }
 
 // Process argument 1
-opcode_t Assembler::processArg1(FILE *sourceFile, char* command, char* arg1, word_t address, char* label, assembledInstruction_t* instruction)
+void Assembler::processArg1(char* command, char* arg1, word_t address, char* label, assembledInstruction_t* instruction)
 {
 	int i = 0;
-
-	if (arg1[0] == ';'){
-		return -1;
-	}
 
 	bool preserveArg = false;
 	char tempArg[MAX_CHARS], preservedArg[MAX_CHARS];
@@ -865,8 +863,47 @@ opcode_t Assembler::processArg1(FILE *sourceFile, char* command, char* arg1, wor
 	if (Cpu::usesNextWord(instruction->a.argument)) {
 		address++;
 	}
+}
 
-	// Return the opcode so it can be determined if arg2 is needed
-	return instruction->opcode;
+// Process argument 2
+void Assembler::processArg2(char* command, char* arg1, word_t address, char* label, assembledInstruction_t* instruction)
+{
+	int i = 0;
 
+
+	bool preserveArg = false;
+	char tempArg[MAX_CHARS], preservedArg[MAX_CHARS];
+	int j = 0, temp = 0;
+
+	int len = strlen(arg1);
+
+	memcpy(tempArg, arg1, len + 1);
+
+	while (arg1[i] != '\0') {
+		if (arg1[i] == ',') {
+
+			arg1[i] = '\0';
+
+			continue;
+		} 
+
+		arg1[i] = tolower(arg1[i]);
+		i++;
+	}
+
+	std::cout << "Argument 2: " << arg1 << std::endl;
+
+	// Determine opcode
+	instruction->opcode = opcodeFor(command);
+	//std::cout << "Basic opcode: " << instruction->opcode << std::endl;
+	printf("Basic opcode: %d\n", instruction->opcode);
+
+	instruction->a = argumentFor(arg1);
+
+	// Advance address
+	address++;
+
+	if (Cpu::usesNextWord(instruction->a.argument)) {
+		address++;
+	}
 }

@@ -5,7 +5,7 @@
         set b, 5        ;uses spaces
 
 		set a, 5		;case is not important
-		SET A, 5
+		set a, 5
 
 		set a, start	;labels should be fine
 		set a,		end		;as should forward labels
