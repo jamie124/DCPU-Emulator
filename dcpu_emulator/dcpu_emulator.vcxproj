@@ -73,14 +73,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="demo_asm\atlas.dasm16" />
     <None Include="demo_asm\demo.dasm16" />
     <None Include="demo_asm\demo2.dasm16" />
     <None Include="demo_asm\hello.dasm16" />
     <None Include="demo_asm\loop.dasm16" />
-    <None Include="demo_asm\notch.dasm16" />
+    <None Include="demo_asm\basic.dasm16" />
     <None Include="demo_asm\os_test.dasm16" />
     <None Include="demo_asm\rain.dasm16" />
     <None Include="demo_asm\simple.dasm16" />
+    <None Include="demo_asm\subroutine.dasm16" />
     <None Include="demo_asm\terminal.dasm16" />
     <None Include="ReadMe.txt" />
   </ItemGroup>

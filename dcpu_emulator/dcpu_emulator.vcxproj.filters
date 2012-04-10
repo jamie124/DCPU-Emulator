@@ -31,9 +31,6 @@
     <None Include="demo_asm\loop.dasm16">
       <Filter>demo_asm</Filter>
     </None>
-    <None Include="demo_asm\notch.dasm16">
-      <Filter>demo_asm</Filter>
-    </None>
     <None Include="demo_asm\os_test.dasm16">
       <Filter>demo_asm</Filter>
     </None>
@@ -44,6 +41,15 @@
       <Filter>demo_asm</Filter>
     </None>
     <None Include="demo_asm\terminal.dasm16">
+      <Filter>demo_asm</Filter>
+    </None>
+    <None Include="demo_asm\basic.dasm16">
+      <Filter>demo_asm</Filter>
+    </None>
+    <None Include="demo_asm\subroutine.dasm16">
+      <Filter>demo_asm</Filter>
+    </None>
+    <None Include="demo_asm\atlas.dasm16">
       <Filter>demo_asm</Filter>
     </None>
   </ItemGroup>

@@ -1,20 +1,16 @@
 ; Program to do printing
-:start
-    set I, 0
+:start set I, 0
     ; Print all the string characters.
-:loop
-    set A, [string+I]
+:loop set A, [string+I]
     add I, 1
     ife A, 0
         set PC, end
     jsr putc
     set PC, loop
-:end
-    set PC, start
+:end set PC, start
 
 ; Put the character specified by A    
-:putc 
-    set PUSH, B ; Destination address of character
+:putc set PUSH, B ; Destination address of character
     
     ife A, [newline]
         set PC, putc_newline
@@ -33,8 +29,7 @@
         set PC, putc_end ; Still room on the line
         
     ; We need to go to the next line
-:putc_newline
-    add [putc_line], 1
+:putc_newline add [putc_line], 1
     set [putc_col], 0
     ifg 16, [putc_line]
         set PC, putc_end ; Still room on the screen
@@ -42,19 +37,16 @@
     ; We need to scroll!
     jsr scroll
     set [putc_line], 16
-:putc_end
-    set B, POP
+:putc_end set B, POP
     set PC, POP ; return
 
     ; Scroll the terminal up one line
     ; Each line is 32 words
-:scroll 
-    set PUSH, I ; Index in video ram
+:scroll set PUSH, I ; Index in video ram
     set PUSH, A ; Index of thing we're copying
     
     set I, 0x8000
-:scroll_loop
-    set A, I
+:scroll_loop set A, I
     add A, 32 ; Corresponding character on next line
     ifg A, 0x8400 ; End of video ram
         set PC, scroll_end ; return
@@ -62,18 +54,13 @@
     add I, 1
     set PC, scroll_loop
     
-:scroll_end
-    set A, POP
+:scroll_end set A, POP
     set I, POP
     set PC, POP ; return
     
 ; Globals
-:putc_line
-dat 0
-:putc_col
-dat 0
-:string
-dat "Hello,\nscrolling,\nmy old friend; I've come to talk with you again.\n", 0
-:newline
-dat "\n"
+:putc_line dat 0
+:putc_col dat 0
+:string dat "Hello,\nscrolling,\nmy old friend; I've come to talk with you again.\n", 0
+:newline dat "\n"
     
