@@ -310,6 +310,7 @@ argumentStruct_t Assembler::argumentFor(char* arg)
 	return toReturn;
 }
 
+/*
 char *replace(char *st, char *orig, char *repl) {
 	char buffer[MAX_CHARS];
 	char *ch;
@@ -318,12 +319,26 @@ char *replace(char *st, char *orig, char *repl) {
 	strncpy(buffer, st, ch-st);  
 	buffer[ch-st] = 0;
 	sprintf(buffer+(ch-st), "%s%s", repl, ch+strlen(orig));
+
+	buffer[strlen(st)] = '\0';
+
 	return buffer;
 }
+*/
 
-int Assembler::compile(char* filename)
+std::string replace(std::string& str, const std::string& from, const std::string& to) {
+	std::string temp = str;
+
+    size_t start_pos = str.find(from);
+    if(start_pos == std::string::npos)
+        return false;
+    return temp.replace(start_pos, from.length(), to);
+    
+}
+
+int Assembler::compile(std::string filename)
 {
-	char* compiledFilename = replace(filename, "asm", "obj");
+	std::string compiledFilename = replace(filename, "asm", "bin");
 
 	/*
 	FILE* sourceFile = fopen(filename, "r");
@@ -336,10 +351,10 @@ int Assembler::compile(char* filename)
 	std::ifstream sourceFile(filename);
 
 	// TODO: Add automatic file naming
-	FILE* compiledFile = fopen(compiledFilename, "w");
+	FILE* compiledFile = fopen(compiledFilename.c_str(), "w");
 
 	if (!compiledFile) {
-		std::cout << "ERROR: Could not open " << filename << std::endl;
+		std::cout << "ERROR: Could not open " << compiledFilename.c_str() << std::endl;
 	}
 
 	char lineBuffer[MAX_CHARS];
@@ -353,14 +368,14 @@ int Assembler::compile(char* filename)
 	assembledInstruction_t* tail = NULL;
 	assembledInstruction_t* instruction = NULL;
 
-	char command[MAX_CHARS], arg1[MAX_CHARS], arg2[MAX_CHARS], data[MAX_CHARS];
-	char* label;
+	char command[MAX_CHARS], label[MAX_CHARS], arg1[MAX_CHARS], arg2[MAX_CHARS], data[MAX_CHARS];
+	//char* label;
 
 	while (1) {
 		// Reset variables
 		for (int i = 0; i < MAX_CHARS; i++) {
 			data[i] = '\0';
-			//label[i] = '\0';
+			label[i] = '\0';
 			command[i] = '\0';
 			arg1[i] = '\0';
 			arg2[i] = '\0';
@@ -597,7 +612,7 @@ char* Assembler::cleanString(char *rawLine)
 }
 
 // Split up 
-int Assembler::processLine(char *currentLine, char *data, char *&label, char *command, char *arg1, char *arg2, bool containsLabel)
+int Assembler::processLine(char *currentLine, char *data, char *label, char *command, char *arg1, char *arg2, bool containsLabel)
 {
 	int lineIndex = 0;						// Current position in line
 	int itemIndex = 0;						// Current position in item being stored
@@ -606,7 +621,7 @@ int Assembler::processLine(char *currentLine, char *data, char *&label, char *co
 		// Don't include ':' in label
 		lineIndex++;
 
-		label = new char[MAX_CHARS];
+		//label = new char[MAX_CHARS * sizeof(char)];
 
 		// Read in until either a space or end of line is found
 		while (currentLine[lineIndex] != ' '  && currentLine[lineIndex] != '\t' && currentLine[lineIndex] != '\n') {
@@ -619,8 +634,8 @@ int Assembler::processLine(char *currentLine, char *data, char *&label, char *co
 		lineIndex++;
 
 	} else {
-		delete label;
-		label = NULL;
+		//delete label;
+		//label = NULL;
 	}
 
 	itemIndex = 0;
@@ -708,7 +723,7 @@ int Assembler::processLine(char *currentLine, char *data, char *&label, char *co
 }
 
 // Process the command
-int Assembler::processCommand(char* command, char *data, word_t address, char* label, assembledInstruction_t *&head,  assembledInstruction_t *&tail, assembledInstruction_t *&instruction)
+int Assembler::processCommand(char* command, char *data, word_t &address, char* label, assembledInstruction_t *&head,  assembledInstruction_t *&tail, assembledInstruction_t *&instruction)
 {
 	int i = 0, index = 0;
 
@@ -828,7 +843,7 @@ int Assembler::processCommand(char* command, char *data, word_t address, char* l
 }
 
 // Process argument 1
-void Assembler::processArg1(char* command, char* arg, word_t address, char* label, assembledInstruction_t *&instruction)
+void Assembler::processArg1(char* command, char* arg, word_t &address, char* label, assembledInstruction_t *&instruction)
 {
 	int i = 0;
 
@@ -870,7 +885,7 @@ void Assembler::processArg1(char* command, char* arg, word_t address, char* labe
 }
 
 // Process argument 2
-void Assembler::processArg2(char* command, char* arg, word_t address, char* label, assembledInstruction_t *&instruction)
+void Assembler::processArg2(char* command, char* arg, word_t &address, char* label, assembledInstruction_t *&instruction)
 {
 	int i = 0;
 

@@ -21,7 +21,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	Cpu* cpu = new Cpu();
 
-	cpu->run("simple.obj");
+	cpu->run("simple.bin");
 
 	delete cpu;
 

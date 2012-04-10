@@ -10,9 +10,9 @@
 		set a, start	;labels should be fine
 		set a,		end		;as should forward labels
 		
-:data	dat "test"		;should be able to handle data constructs
-		dat "test", 0	;and mixed data
-		dat 3, 5, 6		;of both types
-		
-		set a,	5		;number of spaces should be no issue
 :end	set a, 5
+;:data	dat "test"		;should be able to handle data constructs
+;		dat "test", 0	;and mixed data
+;		dat 3, 5, 6		;of both types
+		
+;		set a,	5		;number of spaces should be no issue
