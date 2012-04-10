@@ -13,32 +13,38 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="demo_asm">
+      <UniqueIdentifier>{d98c5ec3-74eb-4f8e-9d0d-c786cc9422d1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
-    <None Include="demo.asm">
-      <Filter>Source Files</Filter>
+    <None Include="demo_asm\demo.dasm16">
+      <Filter>demo_asm</Filter>
     </None>
-    <None Include="demo2.asm">
-      <Filter>Source Files</Filter>
+    <None Include="demo_asm\demo2.dasm16">
+      <Filter>demo_asm</Filter>
     </None>
-    <None Include="hello.asm">
-      <Filter>Source Files</Filter>
+    <None Include="demo_asm\hello.dasm16">
+      <Filter>demo_asm</Filter>
     </None>
-    <None Include="terminal.asm">
-      <Filter>Source Files</Filter>
+    <None Include="demo_asm\loop.dasm16">
+      <Filter>demo_asm</Filter>
     </None>
-    <None Include="os_test.asm">
-      <Filter>Source Files</Filter>
+    <None Include="demo_asm\notch.dasm16">
+      <Filter>demo_asm</Filter>
     </None>
-    <None Include="rain.asm">
-      <Filter>Source Files</Filter>
+    <None Include="demo_asm\os_test.dasm16">
+      <Filter>demo_asm</Filter>
     </None>
-    <None Include="notch.asm">
-      <Filter>Source Files</Filter>
+    <None Include="demo_asm\rain.dasm16">
+      <Filter>demo_asm</Filter>
     </None>
-    <None Include="simple.asm">
-      <Filter>Source Files</Filter>
+    <None Include="demo_asm\simple.dasm16">
+      <Filter>demo_asm</Filter>
+    </None>
+    <None Include="demo_asm\terminal.dasm16">
+      <Filter>demo_asm</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

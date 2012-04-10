@@ -350,6 +350,11 @@ int Assembler::compile(std::string filename)
 
 	std::ifstream sourceFile(filename);
 
+	if (!sourceFile.is_open()) {
+		std::cout << "ERROR: Could not open " << filename.c_str() << std::endl;
+		return -1;
+	}
+
 	// TODO: Add automatic file naming
 	FILE* compiledFile = fopen(compiledFilename.c_str(), "w");
 

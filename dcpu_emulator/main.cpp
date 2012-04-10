@@ -15,13 +15,13 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	Assembler* assembler = new Assembler();
 
-	assembler->compile("simple.asm");
+	assembler->compile("demo_asm/loop.dasm16");
 
 	delete assembler;
 
 	Cpu* cpu = new Cpu();
 
-	cpu->run("simple.bin");
+	cpu->run("loop.bin");
 
 	delete cpu;
 

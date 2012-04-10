@@ -1,0 +1,16 @@
+set i, 1
+
+:loop IFG i, 0x77
+SET PC, next
+SET [0x000e], i
+SET a, I
+MOD a, 8
+ADD a, 1
+MUL a, 0x1001
+SET [0x0020], a
+ADD i, 1
+SET PC, loop
+
+:next SET [0x0018], 0x1234
+
+SUB PC, 1
