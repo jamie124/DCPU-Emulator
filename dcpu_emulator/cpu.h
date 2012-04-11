@@ -65,10 +65,19 @@ const int TERM_HEIGHT = 16;
 const long CONSOLE_START = 0x8000;
 const long CONSOLE_END = (CONSOLE_START + TERM_WIDTH + TERM_HEIGHT);
 
+// Keyboard input
+const long KEYBOARD_ADDRESS = 0x9000;
+const int KEYBOARD_BUFFER_LENGTH = 1;
+
+const int FRAMESKIP = 10;
+
+const int NUM_COLOURS = 16;
+
 class Cpu
 {
 private:
 	bool DEBUG;
+	bool OPCODE_DEBUGGING;
 
 	bool STEP_MODE;
 	bool RUNNING;
@@ -91,6 +100,7 @@ public:
 	static instruction_t setOpcode(instruction_t instruction, opcode_t opcode);
 	static instruction_t setArgument(instruction_t instruction, bool_t which, argument_t argument);
 
+	void setScreen(word_t row, word_t column, word_t character);
 	void setCursorPos(int x, int y);
 	void clearScreen();
 };

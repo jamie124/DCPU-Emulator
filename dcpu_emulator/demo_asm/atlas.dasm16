@@ -33,14 +33,8 @@ SET A, text_cmd
 JSR text_out
 
 
-:wait_loop
-; SET PC, wait_loop
-
 
 :kernel_loop
-
-    ; The Kernel does nothing so far...
-
     JSR proc_suspend
     SET PC, kernel_loop
 

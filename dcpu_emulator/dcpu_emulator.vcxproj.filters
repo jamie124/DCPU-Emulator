@@ -52,6 +52,12 @@
     <None Include="demo_asm\atlas.dasm16">
       <Filter>demo_asm</Filter>
     </None>
+    <None Include="demo_asm\minecraft.dasm16">
+      <Filter>demo_asm</Filter>
+    </None>
+    <None Include="demo_asm\graphics.dasm16">
+      <Filter>demo_asm</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

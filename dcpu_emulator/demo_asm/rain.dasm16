@@ -1,5 +1,5 @@
-set z, 0x1234 
-set y, z
+set z, 0x1234 ; rand_seed
+set y, z ; cur_rand
 set pc, main_loop
 
 :next_rand
@@ -22,12 +22,13 @@ set a, 0x8000
     ifb y, 0x7000
     set pc, skip1
 
+    ; mutate char at [a] (j, i)
     set push, y
     set y, x
     jsr next_rand
-    and [a], 0xff00
+    and [a], 0xff00 ; reset char
     and y, 0x003f
-    bor [a], [code+y] 
+    bor [a], [code+y] ; set letter
     set x, y
     set y, pop
     
@@ -41,6 +42,7 @@ set a, 0x8000
   set pc, next_row1
 set y, x
 
+; step 2: move all columns down
 set i, 12
 set a, 0x817f
 
@@ -52,12 +54,13 @@ set a, 0x817f
     ifb [a+32], 0xffff
     set pc, move_down
 
+    ; add new char at [a+32] (j, i+1)
     jsr next_rand
     set [a+32], [a]
     and [a+32], 0xff00
     set x, y
     and x, 0x003f
-    bor [a+32], [code + x]
+    bor [a+32], [code+x]
     and [a], 0x7fff
     set pc, skip2
     
@@ -77,6 +80,7 @@ set a, 0x817f
   set pc, next_row2
 set y, x
 
+; step 3: update top layer
 set a, 0x8000
 set j, 0
 :next_char3

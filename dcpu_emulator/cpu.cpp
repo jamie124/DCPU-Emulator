@@ -23,11 +23,16 @@ word_t overflow;
 
 word_t cycle;
 
+word_t keyboardPosition;
+
 word_t* literals;
+
+word_t* colourTable;
 
 Cpu::Cpu(void)
 {
 	DEBUG = false;
+	OPCODE_DEBUGGING = false;
 
 	// Setup literals
 	literals = new word_t[ARG_LITERAL_END - ARG_LITERAL_START];
@@ -46,6 +51,33 @@ Cpu::Cpu(void)
 		registers[i] = 0;
 	}
 
+	// Colour table
+	colourTable = new word_t[NUM_COLOURS];
+	colourTable[0] = 0; // Black
+	colourTable[1] = 4; // Blue
+	colourTable[2] = 2; // Green
+	colourTable[3] = 6; // Cyan
+	colourTable[4] = 1; // Red
+	colourTable[5] = 5; // Magenta
+	colourTable[6] = 3; // Brown
+	colourTable[7] = 7; // Light Gray
+	colourTable[8] = 8; // Gray
+	colourTable[9] = 12; // Light Blue
+	colourTable[10] = 10; // Light Green
+	colourTable[11] = 14; // Light Cyan
+	colourTable[12] = 9; // Light Red
+	colourTable[13] = 13; // Light Magenta
+	colourTable[14] = 11; // Yellow
+	colourTable[15] = 15; // White
+
+	/*
+	for(int i = 0; i < NUM_COLOURS; i++) {
+	for (int j = 0; j < NUM_COLOURS; j++) {
+	initPair(getColourPair(i, j), colourTable[i], colourTable[j]);
+	}
+	}
+	*/
+
 	programCounter = 0;
 	stackPointer = 0;
 	overflow = 0;
@@ -59,6 +91,7 @@ Cpu::~Cpu(void)
 	delete literals;
 	delete memory;
 	delete registers;
+	delete colourTable;
 }
 
 int Cpu::run(std::string filename)
@@ -68,9 +101,9 @@ int Cpu::run(std::string filename)
 	FILE * program = fopen(filename.c_str(), "r");
 
 	if (!program) {
-	std::cout << "File could not be opened" << std::endl;
+		std::cout << "File could not be opened" << std::endl;
 
-	return -1;
+		return -1;
 	}
 
 	//fread(memory, sizeof(word_t), MEMORY_LIMIT, program);
@@ -100,7 +133,7 @@ int Cpu::run(std::string filename)
 			bLoc = evaluateArgument(getArgument(instruction, 1));
 			skipStore = isConst(getArgument(instruction, 0));		// If literal
 		}
-		word_t result;
+		word_t result = 0;
 
 		// Execute
 		unsigned int resultWithCarry;		// Some opcodes use internal variable
@@ -129,6 +162,11 @@ int Cpu::run(std::string filename)
 			// Set value of A to B
 			result = *bLoc;
 			cycle += 1;
+
+			if (OPCODE_DEBUGGING) {
+				setCursorPos(TERM_WIDTH + 6, 2);
+				std::cout << "SET A to " << *bLoc;
+			}
 			break;
 
 		case OP_ADD:
@@ -136,6 +174,11 @@ int Cpu::run(std::string filename)
 			result = *aLoc + *bLoc;
 			overflow = (result < *aLoc || result < *bLoc);
 			cycle += 2;
+
+			if (OPCODE_DEBUGGING) {
+				setCursorPos(TERM_WIDTH + 6, 2);
+				std::cout << "ADD " << *bLoc << " to A";
+			}
 			break;
 
 		case OP_SUB:
@@ -143,6 +186,11 @@ int Cpu::run(std::string filename)
 			result = *aLoc - *bLoc;
 			overflow = (result > *aLoc) ? 0xFFFF : 0;
 			cycle += 2;
+
+					if (OPCODE_DEBUGGING) {
+				setCursorPos(TERM_WIDTH + 6, 2);
+				std::cout << "SUB " << *bLoc << " FROM A";
+			}
 			break;
 
 		case OP_MUL:
@@ -151,6 +199,11 @@ int Cpu::run(std::string filename)
 			result = (word_t) (resultWithCarry & 0xFFFF);	// Low word
 			overflow = (word_t) (resultWithCarry >> 16);	// High word
 			cycle += 2;
+
+				if (OPCODE_DEBUGGING) {
+				setCursorPos(TERM_WIDTH + 6, 2);
+				std::cout << "MUL A by " << *bLoc;
+			}
 			break;
 
 		case OP_DIV:
@@ -165,10 +218,15 @@ int Cpu::run(std::string filename)
 			}
 
 			cycle += 3;
+			
+						if (OPCODE_DEBUGGING) {
+				setCursorPos(TERM_WIDTH + 6, 2);
+				std::cout << "DIV A by " << *bLoc;
+			}
 			break;
 
 		case OP_MOD:
-			// Remaineder of A over B
+			// Remainder of A over B
 			if (*bLoc != 0) {
 				result = *aLoc % *bLoc;
 			} else {
@@ -176,6 +234,11 @@ int Cpu::run(std::string filename)
 			}
 
 			cycle += 3;
+			
+			if (OPCODE_DEBUGGING) {
+				setCursorPos(TERM_WIDTH + 6, 2);
+				std::cout << "Remainder of A over  " << *bLoc;
+			}
 			break;
 
 		case OP_SHL:
@@ -266,34 +329,29 @@ int Cpu::run(std::string filename)
 		}
 
 		// TODO: Update video memory
+		
 		if (videoDirty) {
-			clearScreen();
+			//clearScreen();
 			for (int i = 0; i < TERM_HEIGHT; i++) {
 				for (int j = 0; j < TERM_WIDTH; j +=1) {
 					word_t toPrint = memory[CONSOLE_START + i * TERM_WIDTH + j];
-					// Print word a 1 char
-					int colorData = toPrint >> 7;		// TODO: Not used yet
-					char letter = (toPrint & 0x7F);
 
-					if (letter == '\0') {
-						letter = ' ';
-					}
-
-					std::cout << letter;
+					setScreen(i, j, toPrint);
 				}
 
-				std::cout << std::endl;
+				//std::cout << std::endl;
 			}
 			videoDirty = false;
 		}
+		
 
 		setCursorPos(1, TERM_HEIGHT + 1);
-        printf("==== Program Status - CYCLE 0x%04hx====\n", cycle);
-        printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n", registers[0], registers[1], registers[2]);
-        printf("X:  0x%04hx\tY:  0x%04hx\tZ:  0x%04hx\n", registers[3], registers[4], registers[5]);
-        printf("I:  0x%04hx\tJ:  0x%04hx\n", registers[6], registers[7]);
-        printf("PC: 0x%04hx\tSP: 0x%04hx\tO:  0x%04hx\n", programCounter, stackPointer, overflow);
-        printf("Instruction: 0x%04hx\n", instruction);
+		printf("==== Program Status - CYCLE 0x%04hx====\n", cycle);
+		printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n", registers[0], registers[1], registers[2]);
+		printf("X:  0x%04hx\tY:  0x%04hx\tZ:  0x%04hx\n", registers[3], registers[4], registers[5]);
+		printf("I:  0x%04hx\tJ:  0x%04hx\n", registers[6], registers[7]);
+		printf("PC: 0x%04hx\tSP: 0x%04hx\tO:  0x%04hx\n", programCounter, stackPointer, overflow);
+		printf("Instruction: 0x%04hx\n", instruction);
 
 	}
 
@@ -495,28 +553,51 @@ word_t Cpu::getNextWordOffset(instruction_t instruction, bool_t which)
 	}
 }
 
+void Cpu::setScreen(word_t row, word_t column, word_t character)
+{
+	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	setCursorPos(column, row);
+
+	word_t colourData = character >> 7;
+	word_t foreColour = colourData >> 5;
+	word_t backColour = (colourData >> 1) & 0xF;
+	bool_t blinkBit = colourData & 0x1;
+
+	char letter = (character & 0x7F);
+
+	if (letter == '\0') {
+		letter = ' ';
+	}
+
+	SetConsoleTextAttribute(console, 6);
+
+	std::cout << letter;
+}
+
 void Cpu::setCursorPos(int x, int y)
 {
 	COORD pos  = {x, y};
 	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
 
+	SetConsoleTextAttribute(console, 7);
 	SetConsoleCursorPosition(console, pos);
 }
 
 void Cpu::clearScreen()
 {
-	  COORD topLeft  = { 0, 0 };
-    HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
-    CONSOLE_SCREEN_BUFFER_INFO screen;
-    DWORD written;
+	COORD topLeft  = { 0, 0 };
+	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_SCREEN_BUFFER_INFO screen;
+	DWORD written;
 
-    GetConsoleScreenBufferInfo(console, &screen);
-    FillConsoleOutputCharacterA(
-        console, ' ', screen.dwSize.X * screen.dwSize.Y, topLeft, &written
-    );
-    FillConsoleOutputAttribute(
-        console, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE,
-        screen.dwSize.X * screen.dwSize.Y, topLeft, &written
-    );
-    SetConsoleCursorPosition(console, topLeft);
+	GetConsoleScreenBufferInfo(console, &screen);
+	FillConsoleOutputCharacterA(
+		console, ' ', screen.dwSize.X * screen.dwSize.Y, topLeft, &written
+		);
+	FillConsoleOutputAttribute(
+		console, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE,
+		screen.dwSize.X * screen.dwSize.Y, topLeft, &written
+		);
+	SetConsoleCursorPosition(console, topLeft);
 }

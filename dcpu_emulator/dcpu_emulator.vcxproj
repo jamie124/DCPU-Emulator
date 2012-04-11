@@ -76,9 +76,11 @@
     <None Include="demo_asm\atlas.dasm16" />
     <None Include="demo_asm\demo.dasm16" />
     <None Include="demo_asm\demo2.dasm16" />
+    <None Include="demo_asm\graphics.dasm16" />
     <None Include="demo_asm\hello.dasm16" />
     <None Include="demo_asm\loop.dasm16" />
     <None Include="demo_asm\basic.dasm16" />
+    <None Include="demo_asm\minecraft.dasm16" />
     <None Include="demo_asm\os_test.dasm16" />
     <None Include="demo_asm\rain.dasm16" />
     <None Include="demo_asm\simple.dasm16" />
