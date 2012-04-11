@@ -367,14 +367,14 @@ int Assembler::compile(std::string filename)
 
 	char command[MAX_CHARS], label[MAX_CHARS], arg1[MAX_CHARS], arg2[MAX_CHARS], data[MAX_CHARS];
 
-	bool processNextLine = true;	
+	bool skipTillNextLine = false;	
 
 	while (1) {
 		// Reset variables
 		for (int i = 0; i < MAX_CHARS; i++) {
 			data[i] = '\0';
 
-			if (processNextLine) {
+			if (!skipTillNextLine) {
 				label[i] = '\0';
 			}
 
@@ -383,8 +383,8 @@ int Assembler::compile(std::string filename)
 			arg2[i] = '\0';
 		}
 
-		if (!processNextLine) {
-			processNextLine = true;
+		if (skipTillNextLine) {
+			skipTillNextLine = false;
 		}
 
 		if (sourceFile.getline(lineBuffer, MAX_CHARS).eof()) {
@@ -407,15 +407,15 @@ int Assembler::compile(std::string filename)
 
 			// Get label if applicable
 			if (temp[0] == ':') {
-				processLine(temp, data, label, processNextLine, command, arg1, arg2, true);
+				processLine(temp, data, label, skipTillNextLine, command, arg1, arg2, true);
 
 				std::cout << "label: " << label << " " << std::endl; 
 
 			} else {
-				processLine(temp, data, label, processNextLine, command, arg1, arg2, false);
+				processLine(temp, data, label, skipTillNextLine, command, arg1, arg2, false);
 			}
 
-			if (processNextLine) {
+			if (!skipTillNextLine) {
 
 				processCommand(command, data, address, label, head, tail, instruction);
 
@@ -577,20 +577,24 @@ int Assembler::processLine(char *currentLine, char *data, char *label, bool &fun
 
 		int tempLineIndex = lineIndex;
 
-		while (currentLine[tempLineIndex] == ' ' || currentLine[tempLineIndex] == '\t'
-			|| currentLine[tempLineIndex] != '\0') {
+		if (currentLine[lineIndex] == '\0') {
+			functionOnNextLine = true;
+		} else {
+			while (currentLine[tempLineIndex] == ' ' || currentLine[tempLineIndex] == '\t'
+				|| currentLine[tempLineIndex] != '\0') {
 
-				if (currentLine[tempLineIndex] < 65 || currentLine[tempLineIndex] > 122){
-					// Function code start the line below label.
-					functionOnNextLine = false;
-				} else {
-					functionOnNextLine = true;
-				}
+					if (currentLine[tempLineIndex] < 65 || currentLine[tempLineIndex] > 122){
+						// Function code start the line below label.
+						functionOnNextLine = true;
+					} else {
+						functionOnNextLine = false;
+					}
 
-				tempLineIndex++;
+					tempLineIndex++;
+			}
 		}
-
-		if (!functionOnNextLine) {
+		if (functionOnNextLine) {
+			// Code belonging to label starts on next line
 			return 1;
 		}
 
@@ -917,7 +921,7 @@ void Assembler::processArg2(char* command, char* arg, word_t &address, char* lab
 		instruction->b = argumentFor(arg);
 
 		// Advance address
-		address++;
+		//address++;
 
 		if (Cpu::usesNextWord(instruction->b.argument)) {
 			address++;
