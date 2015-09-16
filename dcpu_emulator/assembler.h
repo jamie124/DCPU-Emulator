@@ -2,6 +2,8 @@
 
 #include "cpu.h"
 
+#include <memory>
+
 const int MAX_CHARS = 1024;
 
 typedef struct argumentStruct {
@@ -19,8 +21,10 @@ typedef struct assembledInstruction {
 	opcode_t opcode;
 	argumentStruct_t a;
 	argumentStruct_t b;
-	struct assembledInstruction* next;
+	std::shared_ptr<struct assembledInstruction> next;
 } assembledInstruction_t;
+
+using  AssembledInstructionPtr = std::shared_ptr<assembledInstruction_t>;
 
 class Assembler
 {
@@ -33,9 +37,10 @@ private:
 	char* cleanString(char *rawLine);
 	int processLine(char *currentLine, char *data, char *label, bool &functionOnNextLine, char *command, char *arg1, char *arg2, bool containsLabel);
 
-	int processCommand(char* command, char* data, word_t &address, char* label, assembledInstruction_t *&head,  assembledInstruction_t *&tail, assembledInstruction_t *&instruction);
-	void processArg1(char* command, char* arg, word_t &address, char* label, assembledInstruction_t *&instruction);
-	void processArg2(char* command, char* arg, word_t &address, char* label, assembledInstruction_t *&instruction);
+	int processCommand(char* command, char* data, word_t &address, char* label, 
+		AssembledInstructionPtr &head, AssembledInstructionPtr &tail, AssembledInstructionPtr &instruction);
+	void processArg1(char* command, char* arg, word_t &address, char* label, AssembledInstructionPtr &instruction);
+	void processArg2(char* command, char* arg, word_t &address, char* label, AssembledInstructionPtr &instruction);
 
 public:
 	Assembler(void);

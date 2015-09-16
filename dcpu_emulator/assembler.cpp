@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 
+
 Assembler::Assembler(void)
 {
 }
@@ -333,8 +334,8 @@ int Assembler::compile(const std::string& filename)
 		return -1;
 	}
 
-	// TODO: Add automatic file naming
-	FILE* compiledFile = fopen(compiledFilename.c_str(), "w");
+	//FILE* compiledFile = fopen(compiledFilename.c_str(), "w");
+	std::ofstream compiledFile(compiledFilename, std::ios::binary | std::ios::out);
 
 	if (!compiledFile) {
 		std::cout << "ERROR: Could not open " << compiledFilename.c_str() << std::endl;
@@ -347,9 +348,9 @@ int Assembler::compile(const std::string& filename)
 
 	word_t address = 0;
 
-	assembledInstruction_t* head = NULL;
-	assembledInstruction_t* tail = NULL;
-	assembledInstruction_t* instruction = NULL;
+	AssembledInstructionPtr head;
+	AssembledInstructionPtr tail;
+	AssembledInstructionPtr instruction;
 
 	char command[MAX_CHARS], label[MAX_CHARS], arg1[MAX_CHARS], arg2[MAX_CHARS], data[MAX_CHARS];
 
@@ -418,7 +419,7 @@ int Assembler::compile(const std::string& filename)
 
 	std::cout << std::endl;
 
-	for (assembledInstruction_t* instruction = head; instruction != NULL; instruction = instruction->next) {
+	for (AssembledInstructionPtr instruction = head; instruction != NULL; instruction = instruction->next) {
 		std::cout << "Assembling for address " << instruction->address << std::endl;
 
 		if (instruction->data != NULL) {
@@ -429,7 +430,7 @@ int Assembler::compile(const std::string& filename)
 		if (instruction->a.labelReference != NULL) {
 			std::cout << "Unresolved label for a: " << instruction->a.labelReference << std::endl;
 
-			for (assembledInstruction_t* other = head; other != NULL; other = other->next) {
+			for (AssembledInstructionPtr other = head; other != NULL; other = other->next) {
 				if (other->label != NULL && !strcmp(other->label, instruction->a.labelReference)) {
 					// Match
 					std::cout << "Resolved " << instruction->a.labelReference << " to address " << other->address << std::endl;
@@ -444,7 +445,7 @@ int Assembler::compile(const std::string& filename)
 		if (instruction->b.labelReference != NULL) {
 			std::cout << "Unresolved label for b: " << instruction->b.labelReference << std::endl;
 
-			for (assembledInstruction_t* other = head; other != NULL; other = other->next) {
+			for (AssembledInstructionPtr other = head; other != NULL; other = other->next) {
 				if (other->label != NULL && !strcmp(other->label, instruction->b.labelReference)) {
 					// Match
 					std::cout << "Resolved " << instruction->b.labelReference << " to address " << other->address << std::endl;
@@ -468,10 +469,17 @@ int Assembler::compile(const std::string& filename)
 	}
 
 	// Write out code
-	for (assembledInstruction_t* instruction = head; instruction != NULL; instruction = instruction->next) {
+	for (AssembledInstructionPtr instruction = head; instruction != NULL; instruction = instruction->next) {
 		if (instruction->data != NULL) {
 			std::cout << "DATA: " << instruction->dataLength << " words" << std::endl;
-			fwrite(instruction->data, sizeof(word_t), instruction->dataLength, compiledFile);
+			for (int i = 0; i < instruction->dataLength; ++i) {
+				compiledFile.write(reinterpret_cast<const char*>(&instruction->data[i]), sizeof word_t);
+			}
+
+		//	fwrite(instruction->data, sizeof(word_t), instruction->dataLength, compiledFile);
+		//	compiledFile.write(reinterpret_cast<const char*>(&instruction->data), sizeof(word_t) * instruction->dataLength);
+
+
 			continue;
 		}
 
@@ -482,22 +490,26 @@ int Assembler::compile(const std::string& filename)
 
 		// Save instruction
 		std::cout << address << ": Assembled instruction: " << packed << std::endl;
-		fwrite(&packed, sizeof(instruction_t), 1, compiledFile);
+		//fwrite(&packed, sizeof(instruction_t), 1, compiledFile);
+		compiledFile.write(reinterpret_cast<const char*>(&packed), sizeof instruction_t);
 
 		if (instruction->opcode != OP_NONBASIC && Cpu::usesNextWord(instruction->a.argument)) {
 			std::cout << ++address << ": Extra Word A: " << instruction->a.nextWord << std::endl;
-			fwrite(&(instruction->a.nextWord), sizeof(word_t), 1, compiledFile);
+		//	fwrite(&(instruction->a.nextWord), sizeof(word_t), 1, compiledFile);
+			compiledFile.write(reinterpret_cast<const char*>(&instruction->a.nextWord), sizeof word_t);
 		}
 
 		if (Cpu::usesNextWord(instruction->b.argument)) {
 			std::cout << ++address << ": Extra Word B: " << instruction->b.nextWord << std::endl;
-			fwrite(&(instruction->b.nextWord), sizeof(word_t), 1, compiledFile);
+		//	fwrite(&(instruction->b.nextWord), sizeof(word_t), 1, compiledFile);
+			compiledFile.write(reinterpret_cast<const char*>(&instruction->b.nextWord), sizeof word_t);
 		}
 	}
 
 	std::cout << "Program compiled successfully." << std::endl;
 
-	fclose(compiledFile);
+	compiledFile.close();
+//	fclose(compiledFile);
 }
 
 // Remove any extra characters to make line easier to parse
@@ -696,7 +708,8 @@ int Assembler::processLine(char *currentLine, char *data, char *label, bool &fun
 }
 
 // Process the command
-int Assembler::processCommand(char* command, char *data, word_t &address, char* label, assembledInstruction_t *&head,  assembledInstruction_t *&tail, assembledInstruction_t *&instruction)
+int Assembler::processCommand(char* command, char *data, word_t &address, char* label, 
+	AssembledInstructionPtr &head, AssembledInstructionPtr &tail, AssembledInstructionPtr &instruction)
 {
 	int i = 0, index = 0;
 
@@ -705,8 +718,8 @@ int Assembler::processCommand(char* command, char *data, word_t &address, char* 
 		i++;
 	}
 
-	instruction = new assembledInstruction_t;
-	if (head == NULL) {
+	instruction = std::make_shared<assembledInstruction_t>();
+	if (head == nullptr) {
 		head = instruction;
 		tail = instruction;
 	} else {
@@ -714,11 +727,11 @@ int Assembler::processCommand(char* command, char *data, word_t &address, char* 
 		tail = tail->next;
 	}
 
-	instruction->next = NULL;
+	instruction->next = nullptr;
 	instruction->address = address;
 	instruction->label = strdup(label);
 
-	instruction->data = NULL;
+	instruction->data = nullptr;
 
 	if (!strcmp(command, "dat")) {
 		instruction->data = (word_t*) malloc(MAX_CHARS * sizeof(word_t));
@@ -816,7 +829,8 @@ int Assembler::processCommand(char* command, char *data, word_t &address, char* 
 }
 
 // Process argument 1
-void Assembler::processArg1(char* command, char* arg, word_t &address, char* label, assembledInstruction_t *&instruction)
+void Assembler::processArg1(char* command, char* arg, word_t &address, char* label, 
+	AssembledInstructionPtr &instruction)
 {
 	int i = 0;
 
@@ -854,7 +868,8 @@ void Assembler::processArg1(char* command, char* arg, word_t &address, char* lab
 }
 
 // Process argument 2
-void Assembler::processArg2(char* command, char* arg, word_t &address, char* label, assembledInstruction_t *&instruction)
+void Assembler::processArg2(char* command, char* arg, word_t &address, char* label, 
+	 AssembledInstructionPtr &instruction)
 {
 	int i = 0;
 
