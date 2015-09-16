@@ -41,6 +41,6 @@ public:
 	Assembler(void);
 	~Assembler(void);
 
-	int compile(std::string filename);
+	int compile(const std::string& filename);
 };
 

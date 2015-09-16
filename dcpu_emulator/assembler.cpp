@@ -310,17 +310,19 @@ argumentStruct_t Assembler::argumentFor(char* arg)
 	return toReturn;
 }
 
-std::string replace(std::string& str, const std::string& from, const std::string& to) {
+std::string replace(const std::string& str, const std::string& from, const std::string& to) {
 	std::string temp = str;
 
 	size_t start_pos = str.find(from);
-	if(start_pos == std::string::npos)
+	if (start_pos == std::string::npos) {
 		return false;
+	}
+
 	return temp.replace(start_pos, from.length(), to);
 
 }
 
-int Assembler::compile(std::string filename)
+int Assembler::compile(const std::string& filename)
 {
 	std::string compiledFilename = replace(filename, "dasm16", "bin");
 

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -21,12 +21,14 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -73,18 +75,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="demo_asm\atlas.bin" />
     <None Include="demo_asm\atlas.dasm16" />
+    <None Include="demo_asm\basic.dasm16" />
     <None Include="demo_asm\demo.dasm16" />
     <None Include="demo_asm\demo2.dasm16" />
-    <None Include="demo_asm\graphics.dasm16" />
+    <None Include="demo_asm\hello.bin" />
     <None Include="demo_asm\hello.dasm16" />
+    <None Include="demo_asm\loop.bin" />
     <None Include="demo_asm\loop.dasm16" />
-    <None Include="demo_asm\basic.dasm16" />
-    <None Include="demo_asm\minecraft.dasm16" />
+    <None Include="demo_asm\notch.bin" />
+    <None Include="demo_asm\os_test.bin" />
     <None Include="demo_asm\os_test.dasm16" />
     <None Include="demo_asm\rain.dasm16" />
     <None Include="demo_asm\simple.dasm16" />
+    <None Include="demo_asm\subroutine.bin" />
     <None Include="demo_asm\subroutine.dasm16" />
+    <None Include="demo_asm\terminal.bin" />
     <None Include="demo_asm\terminal.dasm16" />
     <None Include="ReadMe.txt" />
   </ItemGroup>

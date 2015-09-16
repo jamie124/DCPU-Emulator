@@ -19,16 +19,37 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
+    <None Include="demo_asm\atlas.bin">
+      <Filter>demo_asm</Filter>
+    </None>
+    <None Include="demo_asm\atlas.dasm16">
+      <Filter>demo_asm</Filter>
+    </None>
+    <None Include="demo_asm\basic.dasm16">
+      <Filter>demo_asm</Filter>
+    </None>
     <None Include="demo_asm\demo.dasm16">
       <Filter>demo_asm</Filter>
     </None>
     <None Include="demo_asm\demo2.dasm16">
       <Filter>demo_asm</Filter>
     </None>
+    <None Include="demo_asm\hello.bin">
+      <Filter>demo_asm</Filter>
+    </None>
     <None Include="demo_asm\hello.dasm16">
       <Filter>demo_asm</Filter>
     </None>
+    <None Include="demo_asm\loop.bin">
+      <Filter>demo_asm</Filter>
+    </None>
     <None Include="demo_asm\loop.dasm16">
+      <Filter>demo_asm</Filter>
+    </None>
+    <None Include="demo_asm\notch.bin">
+      <Filter>demo_asm</Filter>
+    </None>
+    <None Include="demo_asm\os_test.bin">
       <Filter>demo_asm</Filter>
     </None>
     <None Include="demo_asm\os_test.dasm16">
@@ -40,22 +61,16 @@
     <None Include="demo_asm\simple.dasm16">
       <Filter>demo_asm</Filter>
     </None>
-    <None Include="demo_asm\terminal.dasm16">
-      <Filter>demo_asm</Filter>
-    </None>
-    <None Include="demo_asm\basic.dasm16">
+    <None Include="demo_asm\subroutine.bin">
       <Filter>demo_asm</Filter>
     </None>
     <None Include="demo_asm\subroutine.dasm16">
       <Filter>demo_asm</Filter>
     </None>
-    <None Include="demo_asm\atlas.dasm16">
+    <None Include="demo_asm\terminal.bin">
       <Filter>demo_asm</Filter>
     </None>
-    <None Include="demo_asm\minecraft.dasm16">
-      <Filter>demo_asm</Filter>
-    </None>
-    <None Include="demo_asm\graphics.dasm16">
+    <None Include="demo_asm\terminal.dasm16">
       <Filter>demo_asm</Filter>
     </None>
   </ItemGroup>

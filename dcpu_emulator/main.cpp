@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include <iostream>
+#include <memory>
 
 #include "cpu.h"
 #include "assembler.h"
@@ -13,18 +14,15 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	std::cout << "0x10c Emulator" << std::endl;
 
-	Assembler* assembler = new Assembler();
+	std::unique_ptr<Assembler> assembler = std::make_unique<Assembler>();
 
-	assembler->compile("demo_asm/graphics.dasm16");
+	assembler->compile("demo_asm\\hello.dasm16");
 
-	delete assembler;
+	std::unique_ptr<Cpu> cpu = std::make_unique<Cpu>();
 
-	Cpu* cpu = new Cpu();
+	cpu->run("demo_asm\\hello.bin");
 
-	cpu->run("demo_asm/graphics.bin");
-
-	delete cpu;
-
+	
 	std::cin >> pause;
 
 	return 0;

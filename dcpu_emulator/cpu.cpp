@@ -12,8 +12,6 @@ Started 7-Apr-2012
 #include "cpu.h"
 #include <iostream>
 #include <stdio.h>
-//#include <fstream>
-
 word_t* memory;
 word_t* registers;
 
