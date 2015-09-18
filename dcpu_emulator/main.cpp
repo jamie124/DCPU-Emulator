@@ -18,9 +18,9 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	assembler->compile("demo_asm\\hello.dasm16");
 
-	std::unique_ptr<Cpu> cpu = std::make_unique<Cpu>();
+//	std::unique_ptr<Cpu> cpu = std::make_unique<Cpu>();
 
-	cpu->run("demo_asm\\hello.bin");
+//	cpu->run("demo_asm\\hello.bin");
 
 	
 	std::cin >> pause;

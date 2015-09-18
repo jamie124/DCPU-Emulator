@@ -2,9 +2,9 @@
 #include "assembler.h"
 #include <iostream>
 #include <fstream>
-#include <string.h>
 #include <stdio.h>
-
+#include <string>
+#include <locale>
 
 
 Assembler::Assembler(void)
@@ -16,64 +16,65 @@ Assembler::~Assembler(void)
 {
 }
 
-opcode_t Assembler::opcodeFor(char* command)
+opcode_t Assembler::opcodeFor(const std::string& command)
 {
-	if (!strcmp(command, "set")) {
+	if (command == "set") {
 		return OP_SET;
 	}
 
-	if (!strcmp(command, "add")) {
+	if (command == "add") {
 		return OP_ADD;
 	}
 
-	if (!strcmp(command, "sub")) {
+	if (command == "sub") {
 		return OP_SUB;
 	}
 
-	if (!strcmp(command, "mul")) {
+	if (command == "mul") {
 		return OP_MUL;
 	}
 
-	if (!strcmp(command, "div")) {
+	if (command == "div") {
 		return OP_DIV;
 	}
 
-	if (!strcmp(command, "mod")) {
+	if (command == "mod") {
 		return OP_MOD;
 	}
 
-	if (!strcmp(command, "shl")) {
+	if (command == "shl") {
 		return OP_SHL;
 	}
 
-	if (!strcmp(command, "shr")) {
+	if (command == "shr") {
 		return OP_SHR;
 	}
 
-	if (!strcmp(command, "and")) {
+	if (command == "and") {
 		return OP_AND;
 	}
 
-	if (!strcmp(command, "bor")) {
+	if (command == "bor") {
 		return OP_BOR;
 	}
 
-	if (!strcmp(command, "xor")) {
+	if (command == "xor") {
 		return OP_XOR;
 	}
 
-	if (!strcmp(command, "ife")) {
+	if (command == "ife") {
 		return OP_IFE;
 	}
 
-	if (!strcmp(command, "ifn")) {
+	if (command == "ifn") {
 		return OP_IFN;
 	}
 
-	if (!strcmp(command, "ifg")) {
+	if (command == "ifg") {
 		return OP_IFG;
 	}
-	if (!strcmp(command, "ifb")) {
+
+	if (command == "ifb") {
 		return OP_IFB;
 	}
 
@@ -82,9 +83,10 @@ opcode_t Assembler::opcodeFor(char* command)
 }
 
 // Get non-basic opcode from string
-nonbasicOpcode_t Assembler::nonbasicOpcodeFor(char* command)
+nonbasicOpcode_t Assembler::nonbasicOpcodeFor(const std::string& command)
 {
-	if (!strcmp(command, "jsr")) {
+	//if (!strcmp(command, "jsr")) {
+	if (command == "jsr") {
 		return OP_JSR;
 	}
 
@@ -96,7 +98,7 @@ nonbasicOpcode_t Assembler::nonbasicOpcodeFor(char* command)
 // Check register number 
 int Assembler::registerFor(char regName)
 {
-	switch(regName) {
+	switch (regName) {
 	case 'a':
 		return 0;
 		break;
@@ -128,14 +130,14 @@ int Assembler::registerFor(char regName)
 }
 
 // Get argument value for string
-argumentStruct_t Assembler::argumentFor(char* arg)
+argumentStruct_t Assembler::argumentFor(const std::string& arg)
 {
 	argumentStruct_t toReturn;
 
 	toReturn.badArgument = false;
-	toReturn.labelReference = NULL;
+	toReturn.labelReference = "";
 
-	if (strlen(arg) == 0) {
+	if (arg == "") {
 		std::cout << "ERROR: Empty argument string" << std::endl;
 
 		toReturn.badArgument = true;
@@ -147,20 +149,21 @@ argumentStruct_t Assembler::argumentFor(char* arg)
 		int argValue;
 		char* format;
 
-		if (strlen(arg) > 2 && arg[0] == '0' && arg[1] == 'x') {
+		if (arg.length() > 2 && arg[0] == '0' && arg[1] == 'x') {
 			// Value is hex
 			format = "%x";
-		} else {
+		}
+		else {
 			// Decimal
 			format = "%d";
 		}
 
-		if (sscanf(arg, format, &argValue) != 1) {
-			std::cout << "ERROR: Invalid literal value: " << arg << std::endl;
+		//if (sscanf(arg, format, &argValue) != 1) {
+		//	std::cout << "ERROR: Invalid literal value: " << arg << std::endl;
 
-			toReturn.badArgument = true;
-			return toReturn;
-		}
+		//	toReturn.badArgument = true;
+		//	return toReturn;
+		//}
 
 		if (argValue < ARG_LITERAL_END - ARG_LITERAL_START) {
 			toReturn.argument = ARG_LITERAL_START + argValue;
@@ -175,14 +178,15 @@ argumentStruct_t Assembler::argumentFor(char* arg)
 	}
 
 	if (arg[0] == '[' || arg[0] == '(') {
-		if (strlen(arg) == 3 && (arg[2] == ']' || arg[2] == ')')) {
+		if (arg.length() == 3 && (arg[2] == ']' || arg[2] == ')')) {
 			// If it's 1 char in bracket it's a register
 			int regNum = registerFor(arg[1]);
 
 			if (regNum != -1) {
 				toReturn.argument = ARG_REG_INDEX_START + regNum;
 				return toReturn;
-			} else {
+			}
+			else {
 				std::cout << "ERROR: Invalid [register]: " << arg << std::endl;
 
 				toReturn.badArgument = true;
@@ -190,12 +194,14 @@ argumentStruct_t Assembler::argumentFor(char* arg)
 			}
 		}
 
+		// TODO: Clean up
+
 		// Hex value?
 		int hexValue;
-		if (sscanf(arg + 1, "0x%x", &hexValue) == 1) {
+		if (sscanf(arg.c_str() + 1, "0x%x", &hexValue) == 1) {
 			// +register?
 			char regName;
-			if (sscanf(arg + 1, "0x%x+%c", &hexValue, &regName) == 2) {
+			if (sscanf(arg.c_str() + 1, "0x%x+%c", &hexValue, &regName) == 2) {
 				// TODO enforce closing
 				int regNum = registerFor(regName);
 
@@ -203,20 +209,28 @@ argumentStruct_t Assembler::argumentFor(char* arg)
 					toReturn.argument = ARG_REG_NEXTWORD_INDEX_START + regNum;
 					toReturn.nextWord = hexValue;
 					return toReturn;
-				} else {
+				}
+				else {
 					std::cout << "ERROR: Invalid register name " << regName << " in: " << arg << std::endl;
 
 					toReturn.badArgument = true;
 					return toReturn;
 				}
-			} else {
+			}
+			else {
 				// Just hex in brackets
 				// TODO: enforce closing
 				toReturn.argument = ARG_NEXTWORD_INDEX;
 				toReturn.nextWord = hexValue;
 				return toReturn;
 			}
-		} else {
+		}
+		else {
+			int labelEnd = arg.find("+");
+
+			bool containsRegister = false;
+
+			/*
 			char* labelStart = arg + 1;
 
 			char* labelEnd = strchr(arg, '+');
@@ -234,66 +248,75 @@ argumentStruct_t Assembler::argumentFor(char* arg)
 				toReturn.badArgument = true;
 				return toReturn;
 			}
+			
 
 			// Store label
-			char* label = (char*) malloc((labelEnd - labelStart) + 1);
+			char* label = (char*)malloc((labelEnd - labelStart) + 1);
 			strncpy(label, labelStart, (labelEnd - labelStart));
 			label[labelEnd - labelStart] = '\0';
 
 			toReturn.labelReference = label;
+			*/
 
 			// Try to parse register
-			char regName;
-			if (sscanf(labelEnd, "+%c", &regName) == 1) {
-				int regNum = registerFor(regName);
-				if (regNum != -1) {
-					toReturn.argument = ARG_REG_NEXTWORD_INDEX_START + regNum;
-					return toReturn;
-				} else {
-					std::cout << "ERROR: Invalid register name '" << regName << "' in: " << arg << " (" << labelEnd << ")" << std::endl;
+			if (containsRegister) {
+				/*
+				char regName;
+				if (sscanf(labelEnd, "+%c", &regName) == 1) {
+					int regNum = registerFor(regName);
+					if (regNum != -1) {
+						toReturn.argument = ARG_REG_NEXTWORD_INDEX_START + regNum;
+						return toReturn;
+					}
+					else {
+						std::cout << "ERROR: Invalid register name '" << regName << "' in: " << arg << " (" << labelEnd << ")" << std::endl;
 
-					toReturn.badArgument = true;
+						toReturn.badArgument = true;
+						return toReturn;
+					}
+				}
+				else {
+					toReturn.argument = ARG_NEXTWORD_INDEX;
 					return toReturn;
 				}
-			} else {
-				toReturn.argument = ARG_NEXTWORD_INDEX;
-				return toReturn;
+				*/
 			}
 		}
 	}
+
 	// Check for reserved words
-	if (!strcmp(arg, "pop")) {
+	if (arg == "pop") {
 		toReturn.argument = ARG_POP;
 		return toReturn;
 	}
 
-	if (!strcmp(arg, "peek")) {
+	if (arg == "peek") {
 		toReturn.argument = ARG_PEEK;
 		return toReturn;
 	}
 
-	if (!strcmp(arg, "push")) {
+	if (arg == "push") {
 		toReturn.argument = ARG_PUSH;
 		return toReturn;
 	}
 
-	if (!strcmp(arg, "sp")) {
+	if (arg == "sp") {
 		toReturn.argument = ARG_SP;
 		return toReturn;
 	}
 
-	if (!strcmp(arg, "pc")) {
+	if (arg == "pc") {
 		toReturn.argument = ARG_PC;
 		return toReturn;
 	}
 
-	if (!strcmp(arg, "o")) {
+	if (arg == "o") {
 		toReturn.argument = ARG_O;
 		return toReturn;
 	}
 
 	// Is register?
-	if (strlen(arg) == 1) {
+	if (arg.length() == 1) {
 		int regNum = registerFor(arg[0]);
 		if (regNum != -1) {
 			toReturn.argument = ARG_REG_START + regNum;
@@ -304,10 +327,10 @@ argumentStruct_t Assembler::argumentFor(char* arg)
 	toReturn.argument = ARG_NEXTWORD;
 
 	// Store label for later
-	char* label = (char*) malloc(strlen(arg) + 1);
-	strcpy(label, arg);
+	//char* label = (char*)malloc(strlen(arg) + 1);
+	//strcpy(label, arg);
 
-	toReturn.labelReference = label;
+	toReturn.labelReference = arg;
 	return toReturn;
 }
 
@@ -352,12 +375,21 @@ int Assembler::compile(const std::string& filename)
 	AssembledInstructionPtr tail;
 	AssembledInstructionPtr instruction;
 
-	char command[MAX_CHARS], label[MAX_CHARS], arg1[MAX_CHARS], arg2[MAX_CHARS], data[MAX_CHARS];
+	std::string command;
+	std::string label;
+	std::string arg1;
+	std::string arg2;
+	std::string data;
+	//char /*command[MAX_CHARS],*/ label[MAX_CHARS], arg1[MAX_CHARS], arg2[MAX_CHARS], data[MAX_CHARS];
 
-	bool skipTillNextLine = false;	
+	bool skipTillNextLine = false;
+
+	std::string currentLine;
+
 
 	while (1) {
 		// Reset variables
+		/*
 		for (int i = 0; i < MAX_CHARS; i++) {
 			data[i] = '\0';
 
@@ -365,45 +397,57 @@ int Assembler::compile(const std::string& filename)
 				label[i] = '\0';
 			}
 
-			command[i] = '\0';
+		//	command[i] = '\0';
 			arg1[i] = '\0';
 			arg2[i] = '\0';
 		}
+		*/
 
 		if (skipTillNextLine) {
 			skipTillNextLine = false;
 		}
 
-		if (sourceFile.getline(lineBuffer, MAX_CHARS).eof()) {
-			finished = true;
-		}
+		command = "";
+		arg1 = "";
+		arg2 = "";
+		data = "";
+
+		std::getline(sourceFile, currentLine);
+
+		std::cout << currentLine;
+		//if (sourceFile.getline(lineBuffer, MAX_CHARS).eof()) {
+	//		finished = true;
+		//}
 
 
-		char* temp = cleanString(lineBuffer);
+		//char* temp = cleanString(lineBuffer);
 
 		// Check if whole line is a blank
-		if (strlen(temp) == 0) {
-			if (strlen(label) > 0) {
+		if (currentLine == "") {
+			//if (strlen(label) > 0) {
+			if (label == "") {
 				processCommand("", "", address, label, head, tail, instruction);
 			}
-		} else {
+		}
+		else {
 			// Non blank line, start processing
 
 			// Get label if applicable
-			if (temp[0] == ':') {
-				processLine(temp, data, label, skipTillNextLine, command, arg1, arg2, true);
+			if (currentLine[0] == ':') {
+				processLine(currentLine, data, label, skipTillNextLine, command, arg1, arg2, true);
 
-				std::cout << "label: " << label << " " << std::endl; 
+				std::cout << "label: " << label << " " << std::endl;
 
-			} else {
-				processLine(temp, data, label, skipTillNextLine, command, arg1, arg2, false);
+			}
+			else {
+				processLine(currentLine, data, label, skipTillNextLine, command, arg1, arg2, false);
 			}
 
 			if (!skipTillNextLine) {
 
 				processCommand(command, data, address, label, head, tail, instruction);
 
-				if (strcmp(command, "dat") != 0) {
+				if (command != "dat") {
 					processArg1(command, arg1, address, label, instruction);
 					processArg2(command, arg2, address, label, instruction);
 				}
@@ -412,9 +456,10 @@ int Assembler::compile(const std::string& filename)
 			}
 		}
 
-		if (finished) {
+		if (sourceFile.eof()) {
 			break;
 		}
+
 	}
 
 	std::cout << std::endl;
@@ -427,42 +472,42 @@ int Assembler::compile(const std::string& filename)
 		}
 
 		// Label reference for A
-		if (instruction->a.labelReference != NULL) {
+		if (instruction->a.labelReference != "") {
 			std::cout << "Unresolved label for a: " << instruction->a.labelReference << std::endl;
 
 			for (AssembledInstructionPtr other = head; other != NULL; other = other->next) {
-				if (other->label != NULL && !strcmp(other->label, instruction->a.labelReference)) {
+				if (other->label != "" && (other->label == instruction->a.labelReference)) {
 					// Match
 					std::cout << "Resolved " << instruction->a.labelReference << " to address " << other->address << std::endl;
 					instruction->a.nextWord = other->address;
-					instruction->a.labelReference = NULL;
+					instruction->a.labelReference = "";
 					break;
 				}
 			}
 		}
 
 		// Label reference for B
-		if (instruction->b.labelReference != NULL) {
+		if (instruction->b.labelReference != "") {
 			std::cout << "Unresolved label for b: " << instruction->b.labelReference << std::endl;
 
 			for (AssembledInstructionPtr other = head; other != NULL; other = other->next) {
-				if (other->label != NULL && !strcmp(other->label, instruction->b.labelReference)) {
+				if (other->label != "" && (other->label == instruction->b.labelReference)) {
 					// Match
 					std::cout << "Resolved " << instruction->b.labelReference << " to address " << other->address << std::endl;
 					instruction->b.nextWord = other->address;
-					instruction->b.labelReference = NULL;
+					instruction->b.labelReference = "";
 					break;
 				}
 			}
 		}
 
 		// Any references left?
-		if (instruction->a.labelReference != NULL) {
+		if (instruction->a.labelReference != "") {
 			std::cout << "Unresolved label for a: " << instruction->a.labelReference << std::endl;
 			return -1;
 		}
 
-		if (instruction->b.labelReference != NULL) {
+		if (instruction->b.labelReference != "") {
 			std::cout << "Unresolved label for b: " << instruction->b.labelReference << std::endl;
 			return -1;
 		}
@@ -476,8 +521,8 @@ int Assembler::compile(const std::string& filename)
 				compiledFile.write(reinterpret_cast<const char*>(&instruction->data[i]), sizeof word_t);
 			}
 
-		//	fwrite(instruction->data, sizeof(word_t), instruction->dataLength, compiledFile);
-		//	compiledFile.write(reinterpret_cast<const char*>(&instruction->data), sizeof(word_t) * instruction->dataLength);
+			//	fwrite(instruction->data, sizeof(word_t), instruction->dataLength, compiledFile);
+			//	compiledFile.write(reinterpret_cast<const char*>(&instruction->data), sizeof(word_t) * instruction->dataLength);
 
 
 			continue;
@@ -495,13 +540,13 @@ int Assembler::compile(const std::string& filename)
 
 		if (instruction->opcode != OP_NONBASIC && Cpu::usesNextWord(instruction->a.argument)) {
 			std::cout << ++address << ": Extra Word A: " << instruction->a.nextWord << std::endl;
-		//	fwrite(&(instruction->a.nextWord), sizeof(word_t), 1, compiledFile);
+			//	fwrite(&(instruction->a.nextWord), sizeof(word_t), 1, compiledFile);
 			compiledFile.write(reinterpret_cast<const char*>(&instruction->a.nextWord), sizeof word_t);
 		}
 
 		if (Cpu::usesNextWord(instruction->b.argument)) {
 			std::cout << ++address << ": Extra Word B: " << instruction->b.nextWord << std::endl;
-		//	fwrite(&(instruction->b.nextWord), sizeof(word_t), 1, compiledFile);
+			//	fwrite(&(instruction->b.nextWord), sizeof(word_t), 1, compiledFile);
 			compiledFile.write(reinterpret_cast<const char*>(&instruction->b.nextWord), sizeof word_t);
 		}
 	}
@@ -509,7 +554,7 @@ int Assembler::compile(const std::string& filename)
 	std::cout << "Program compiled successfully." << std::endl;
 
 	compiledFile.close();
-//	fclose(compiledFile);
+	//	fclose(compiledFile);
 }
 
 // Remove any extra characters to make line easier to parse
@@ -528,16 +573,17 @@ char* Assembler::cleanString(char *rawLine)
 		}
 
 		while (rawLine[rawIndex] != ';' && rawLine[rawIndex] != '\0') {
-			if (rawLine[rawIndex] >= 65 && rawLine[rawIndex] < 123 
+			if (rawLine[rawIndex] >= 65 && rawLine[rawIndex] < 123
 				|| rawLine[rawIndex] == ':') {
-					skippingChars = false;
+				skippingChars = false;
 			}
 
-			if (!skippingChars){
+			if (!skippingChars) {
 				if (rawLine[rawIndex] == '\t') {
 					// Replace tab with space
 					temp[tempIndex++] = ' ';
-				} else {
+				}
+				else {
 					temp[tempIndex++] = rawLine[rawIndex];
 				}
 			}
@@ -551,10 +597,55 @@ char* Assembler::cleanString(char *rawLine)
 	return temp;
 }
 
+std::string& Assembler::ltrim(std::string& str)
+{
+	auto it2 = std::find_if(str.begin(), str.end(), [](char ch) { return !std::isspace<char>(ch, std::locale::classic()); });
+	str.erase(str.begin(), it2);
+	return str;
+}
+
+std::string& Assembler::rtrim(std::string& str)
+{
+	auto it1 = std::find_if(str.rbegin(), str.rend(), [](char ch) { return !std::isspace<char>(ch, std::locale::classic()); });
+	str.erase(it1.base(), str.end());
+	return str;
+}
+
+std::string& Assembler::trim(std::string& str)
+{
+	return ltrim(rtrim(str));
+}
+
+unsigned int Assembler::split(const std::string &txt, std::vector<std::string> &strs, char ch)
+{
+	unsigned int pos = txt.find(ch);
+	unsigned int initialPos = 0;
+	strs.clear();
+
+	// Decompose statement
+	while (pos != std::string::npos) {
+		strs.push_back(txt.substr(initialPos, pos - initialPos + 1));
+		initialPos = pos + 1;
+
+		pos = txt.find(ch, initialPos);
+	}
+
+	// Add the last one
+	strs.push_back(txt.substr(initialPos, min(pos, txt.size()) - initialPos + 1));
+
+	return strs.size();
+}
+
 // Split up the line and work out what values are in it.
 // This is sort of shit, will need to update this at some point.
-int Assembler::processLine(char *currentLine, char *data, char *label, bool &functionOnNextLine, char *command, char *arg1, char *arg2, bool containsLabel)
+int Assembler::processLine(const std::string& currentLine, std::string& data, std::string& label, bool &functionOnNextLine,
+	std::string& command, std::string& arg1, std::string& arg2, bool containsLabel)
 {
+
+	std::vector<std::string> splitStr;
+
+	split(currentLine, splitStr, ' ');
+
 	int lineIndex = 0;						// Current position in line
 	int itemIndex = 0;						// Current position in item being stored
 
@@ -563,10 +654,10 @@ int Assembler::processLine(char *currentLine, char *data, char *label, bool &fun
 		lineIndex++;
 
 		// Read in until either a space or end of line is found
-		while (currentLine[lineIndex] != ' '  && currentLine[lineIndex] != '\t' 
+		while (currentLine[lineIndex] != ' '  && currentLine[lineIndex] != '\t'
 			&& currentLine[lineIndex] != '\n' && currentLine[lineIndex] != '\0') {
 
-				label[itemIndex++] = tolower(currentLine[lineIndex++]); 
+			label[itemIndex++] = tolower(currentLine[lineIndex++]);
 		}
 
 		label[itemIndex++] = '\0';
@@ -576,42 +667,46 @@ int Assembler::processLine(char *currentLine, char *data, char *label, bool &fun
 		if (currentLine[lineIndex] == '\0') {
 			functionOnNextLine = true;
 			return 1;
-		} else {
+		}
+		else {
 			while (currentLine[tempLineIndex] == ' ' || currentLine[tempLineIndex] == '\t'
 				|| currentLine[tempLineIndex] != '\0') {
 
-					if (currentLine[tempLineIndex] >= 65 && currentLine[tempLineIndex] < 123){
-						functionOnNextLine = false;
-						break;
-					} else {
-						functionOnNextLine = true;
-					}
+				if (currentLine[tempLineIndex] >= 65 && currentLine[tempLineIndex] < 123) {
+					functionOnNextLine = false;
+					break;
+				}
+				else {
+					functionOnNextLine = true;
+				}
 
-					tempLineIndex++;
+				tempLineIndex++;
 			}
 		}
 
 		// Consume whitespace between label and command if needed
 		lineIndex++;
 
-	} 
+	}
 
 	itemIndex = 0;
 
 	//lineIndex++;
 
 	// Check if label is on the same line as first statement
-	if ((currentLine[lineIndex] >= 32 && currentLine[lineIndex] < 127) && 
+	/*
+	if ((currentLine[lineIndex] >= 32 && currentLine[lineIndex] < 127) &&
 		(currentLine[lineIndex] != ' ' || currentLine[lineIndex] != '\t')) {
-			// Consume any spaces or tabs between label and command
-			while (currentLine[lineIndex] == ' ' || currentLine[lineIndex] == '\t') {
-				lineIndex++;
-			}
+		// Consume any spaces or tabs between label and command
+		while (currentLine[lineIndex] == ' ' || currentLine[lineIndex] == '\t') {
+			lineIndex++;
+		}
 
-			while (currentLine[lineIndex] != ' ') {
-				command[itemIndex++] = currentLine[lineIndex++];
-			}
-	} else {
+		while (currentLine[lineIndex] != ' ') {
+ 			command[itemIndex++] = currentLine[lineIndex++];
+		}
+	}
+	else {
 		lineIndex = 0;
 		while (currentLine[lineIndex] == ' ' || currentLine[lineIndex] == '\t') {
 			lineIndex++;
@@ -621,28 +716,40 @@ int Assembler::processLine(char *currentLine, char *data, char *label, bool &fun
 			command[itemIndex++] = currentLine[lineIndex++];
 		}
 	}
+	*/
+	
+	int offset = (containsLabel ? 1 : 0);
 
+	if (splitStr.size() > 1) {
+		command = trim(splitStr[offset]);
+	}
+	else {
+		command = "";
+	}
 
-	command[itemIndex++] = '\0';
+	//command[itemIndex++] = '\0';
 
 	itemIndex = 0;
 
 	// Check if remaining data belongs to 'dat' command.
-	int i = strcmp(command, "dat");
-	if (strcmp(command, "dat") == 0) {
+	//int i = strcmp(command, "dat");
+	//if (strcmp(command, "dat") == 0) {
+	if (command == "dat") {
 		while (currentLine[lineIndex] == ' ' || currentLine[lineIndex] == '\t') {
 			lineIndex++;
 		}
 
-		while (currentLine[lineIndex] != '\0' && currentLine[lineIndex] != ';' 
-			&& currentLine[lineIndex] != '0' && currentLine[lineIndex] != '\n'){
-				data[itemIndex++] = currentLine[lineIndex++];
+		while (currentLine[lineIndex] != '\0' && currentLine[lineIndex] != ';'
+			&& currentLine[lineIndex] != '0' && currentLine[lineIndex] != '\n') {
+			data[itemIndex++] = currentLine[lineIndex++];
 		}
 
 		data[itemIndex++] = '\0';
 
-	} else {
+	}
+	else {
 
+		/*
 		itemIndex = 0;
 
 		while (currentLine[lineIndex] == ' ' || currentLine[lineIndex] == '\t') {
@@ -651,8 +758,8 @@ int Assembler::processLine(char *currentLine, char *data, char *label, bool &fun
 
 		// Find first arg
 		// This will start with either 'a-z', 'A-Z', or '['
-		if ((currentLine[lineIndex] >= 48 && currentLine[lineIndex] < 58) 
-			|| (currentLine[lineIndex] >= 65 && currentLine[lineIndex] < 123) 
+		if ((currentLine[lineIndex] >= 48 && currentLine[lineIndex] < 58)
+			|| (currentLine[lineIndex] >= 65 && currentLine[lineIndex] < 123)
 			|| currentLine[lineIndex] == '[') {
 			while (currentLine[lineIndex] != ',' && currentLine[lineIndex] != ' ') {
 				if (currentLine[lineIndex] == '\0') {
@@ -667,8 +774,10 @@ int Assembler::processLine(char *currentLine, char *data, char *label, bool &fun
 		}
 
 		arg1[itemIndex++] = '\0';
+		*/
+		arg1 = trim(splitStr[offset + 1]);
 
-		itemIndex = 0;
+  		itemIndex = 0;
 
 		// Find second arg, optional
 		// Find start of second arg
@@ -677,29 +786,31 @@ int Assembler::processLine(char *currentLine, char *data, char *label, bool &fun
 		if (currentLine[lineIndex] == ',') {
 			// Check next character for ',' indicating a second arg
 			hasArg2 = true;
-		} else {
-			while (currentLine[lineIndex] == ' ' && currentLine[lineIndex] != '\0' ) {
+		}
+		else {
+			while (currentLine[lineIndex] == ' ' && currentLine[lineIndex] != '\0') {
 				lineIndex++;
 			}
-			if (currentLine[lineIndex] == ','){
+			if (currentLine[lineIndex] == ',') {
 				hasArg2 = true;
 			}
 		}
 
-		if (hasArg2){
+		if (hasArg2) {
 			while (currentLine[lineIndex] < 48 || currentLine[lineIndex] >= 123) {
 				lineIndex++;
 			}
 
-			while (currentLine[lineIndex] != '\0' && currentLine[lineIndex] != ' ' 
-				&& currentLine[lineIndex] != '\t' && currentLine[lineIndex] != '\n'){
+			while (currentLine[lineIndex] != '\0' && currentLine[lineIndex] != ' '
+				&& currentLine[lineIndex] != '\t' && currentLine[lineIndex] != '\n') {
 
-					arg2[itemIndex++] = currentLine[lineIndex++];
+				arg2[itemIndex++] = currentLine[lineIndex++];
 			}
 
 
 			arg2[itemIndex++] = '\0';
-		} else {
+		}
+		else {
 			arg2[0] = '\0';
 		}
 
@@ -708,49 +819,51 @@ int Assembler::processLine(char *currentLine, char *data, char *label, bool &fun
 }
 
 // Process the command
-int Assembler::processCommand(char* command, char *data, word_t &address, char* label, 
+int Assembler::processCommand(const std::string& command, std::string data, word_t &address, const std::string& label,
 	AssembledInstructionPtr &head, AssembledInstructionPtr &tail, AssembledInstructionPtr &instruction)
 {
 	int i = 0, index = 0;
 
-	while (command[i] != '\0') {
-		command[i] = tolower(command[i]);
-		i++;
-	}
+//	while (command[i] != '\0') {
+//		command[i] = tolower(command[i]);
+//		i++;
+//	}
 
 	instruction = std::make_shared<assembledInstruction_t>();
 	if (head == nullptr) {
 		head = instruction;
 		tail = instruction;
-	} else {
+	}
+	else {
 		tail->next = instruction;
 		tail = tail->next;
 	}
 
 	instruction->next = nullptr;
 	instruction->address = address;
-	instruction->label = strdup(label);
+	instruction->label = label;
 
 	instruction->data = nullptr;
 
-	if (!strcmp(command, "dat")) {
-		instruction->data = (word_t*) malloc(MAX_CHARS * sizeof(word_t));
+	//if (!strcmp(command, "dat")) {
+	if (command == "dat") {
+		instruction->data = (word_t*)malloc(MAX_CHARS * sizeof(word_t));
 		instruction->dataLength = 0;
 
-		while(1) {
+		while (1) {
 
 			int nextChar = data[index++];
 			if (nextChar == '"') {
 				std::cout << "Reading string." << std::endl;
 
 				bool_t escaped = 0;
-				while(1) {
+				while (1) {
 					nextChar = data[index++];
 					char toPut;
 
 					if (escaped) {
 						// Escape translation
-						switch(nextChar) {
+						switch (nextChar) {
 						case 'n':
 							toPut = '\n';
 							break;
@@ -773,12 +886,15 @@ int Assembler::processCommand(char* command, char *data, word_t &address, char* 
 						}
 
 						escaped = 0;
-					} else if (nextChar == '"' || nextChar == '\0') {
+					}
+					else if (nextChar == '"' || nextChar == '\0') {
 						break;
-					} else if (nextChar == '\\') {
+					}
+					else if (nextChar == '\\') {
 						escaped = 1;
 						continue;
-					} else {
+					}
+					else {
 						// Normal character
 						toPut = nextChar;
 					}
@@ -788,7 +904,8 @@ int Assembler::processCommand(char* command, char *data, word_t &address, char* 
 				}
 
 				std::cout << std::endl;
-			} else {
+			}
+			else {
 				int nextNextChar = data[index++];
 
 				if (nextNextChar == -1) {
@@ -802,17 +919,19 @@ int Assembler::processCommand(char* command, char *data, word_t &address, char* 
 					// Hex literal
 					std::cout << "Reading hex literal" << std::endl;
 
-					if (!sscanf(data, "0x%hx", &instruction->data[instruction->dataLength]) == 1) {
+					if (!sscanf(data.c_str(), "0x%hx", &instruction->data[instruction->dataLength]) == 1) {
 						std::cout << "ERROR: Expected hex literal" << std::endl;
 						return -1;
 					}
 
 					instruction->dataLength++;
-				} else if(sscanf(data, "%hu", &instruction->data[instruction->dataLength]) == 1) {
+				}
+				else if (sscanf(data.c_str(), "%hu", &instruction->data[instruction->dataLength]) == 1) {
 					// Decimal literal
 					std::cout << "Reading decimal literal" << std::endl;
 					instruction->dataLength++;
-				} else {
+				}
+				else {
 					// Not a real literal
 					std::cout << "Out of literals" << std::endl;
 					break;
@@ -829,7 +948,7 @@ int Assembler::processCommand(char* command, char *data, word_t &address, char* 
 }
 
 // Process argument 1
-void Assembler::processArg1(char* command, char* arg, word_t &address, char* label, 
+void Assembler::processArg1(const std::string& command, const std::string& arg, word_t &address, const std::string& label,
 	AssembledInstructionPtr &instruction)
 {
 	int i = 0;
@@ -838,6 +957,7 @@ void Assembler::processArg1(char* command, char* arg, word_t &address, char* lab
 	char tempArg[MAX_CHARS], preservedArg[MAX_CHARS];
 	int j = 0, temp = 0;
 
+	/*
 	int len = strlen(arg);
 
 	memcpy(tempArg, arg, len + 1);
@@ -848,11 +968,12 @@ void Assembler::processArg1(char* command, char* arg, word_t &address, char* lab
 			arg[i] = '\0';
 
 			continue;
-		} 
+		}
 
 		arg[i] = tolower(arg[i]);
 		i++;
 	}
+	*/
 
 	// Determine opcode
 	instruction->opcode = opcodeFor(command);
@@ -868,8 +989,8 @@ void Assembler::processArg1(char* command, char* arg, word_t &address, char* lab
 }
 
 // Process argument 2
-void Assembler::processArg2(char* command, char* arg, word_t &address, char* label, 
-	 AssembledInstructionPtr &instruction)
+void Assembler::processArg2(const std::string& command, const std::string& arg, word_t &address, const std::string& label,
+	AssembledInstructionPtr &instruction)
 {
 	int i = 0;
 
@@ -877,16 +998,18 @@ void Assembler::processArg2(char* command, char* arg, word_t &address, char* lab
 	char tempArg[MAX_CHARS], preservedArg[MAX_CHARS];
 	int j = 0, temp = 0;
 
-	int len = strlen(arg);
+//	int len = strlen(arg);
 
-	if (len == 0) {
+	if (arg == "") {
 		// No second arg
 		instruction->b = instruction->a;
 
-		instruction->a.argument = (argument_t) nonbasicOpcodeFor(command);
-		instruction->a.labelReference = NULL;
+		instruction->a.argument = (argument_t)nonbasicOpcodeFor(command);
+		instruction->a.labelReference = "";
 
-	} else {
+	}
+	else {
+		/*
 		memcpy(tempArg, arg, len + 1);
 
 		while (arg[i] != '\0') {
@@ -895,11 +1018,12 @@ void Assembler::processArg2(char* command, char* arg, word_t &address, char* lab
 				arg[i] = '\0';
 
 				continue;
-			} 
+			}
 
 			arg[i] = tolower(arg[i]);
 			i++;
 		}
+		*/
 
 		instruction->b = argumentFor(arg);
 
