@@ -49,13 +49,13 @@ static const word_t ARG_REG_NEXTWORD_INDEX_END = 24;
 static const word_t ARG_POP = 24;
 static const word_t ARG_PEEK = 25;
 static const word_t ARG_PUSH = 26;
-static const word_t ARG_SP = 27;
-static const word_t ARG_PC = 28;
-static const word_t ARG_O = 29;
+static const word_t ARG_SP = 0x1b;
+static const word_t ARG_PC = 0x1c;
+static const word_t ARG_O = 0x1d;
 static const word_t ARG_NEXTWORD_INDEX = 30;
 static const word_t ARG_NEXTWORD = 31;
 static const word_t ARG_LITERAL_START = 0x20;
-static const word_t ARG_LITERAL_END = 64;
+static const word_t ARG_LITERAL_END = 0x3f;
 
 const long MEMORY_LIMIT = 0x10000;
 const int NUM_REGISTERS = 8;
@@ -84,8 +84,13 @@ private:
 
 	word_t* evaluateArgument(argument_t argument);
 
+	void evaluateArgument(argument_t argument, word_t& argumentResult);
+
+	word_t getValue(argument_t argument);
+	void setValue(argument_t argument, word_t value);
+
 	opcode_t getOpcode(instruction_t instruction);
-	argument_t getArgument(instruction_t instruction, bool_t which);
+	argument_t getArgument(instruction_t instruction, boolean argB);
 
 	bool_t isConst(argument_t argument);
 	word_t getInstructionLength(instruction_t instruction);

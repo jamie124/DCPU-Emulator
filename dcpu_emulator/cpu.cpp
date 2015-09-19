@@ -30,7 +30,7 @@ word_t* colourTable;
 Cpu::Cpu(void)
 {
 	DEBUG = false;
-	OPCODE_DEBUGGING = false;
+	OPCODE_DEBUGGING = true;
 
 	// Setup literals
 	literals = new word_t[ARG_LITERAL_END - ARG_LITERAL_START];
@@ -110,7 +110,13 @@ int Cpu::run(std::string filename)
 
 	bool videoDirty = false;
 
+	int pause;
+
 	while(1) {
+
+		std::cin.get();
+
+
 		word_t executingPC = programCounter;
 		instruction_t instruction = memory[programCounter++];
 
@@ -118,17 +124,21 @@ int Cpu::run(std::string filename)
 		opcode_t opcode = getOpcode(instruction);
 		nonbasicOpcode_t nonbasicOpcode;
 
-		word_t* aLoc;
-		word_t* bLoc;
+		word_t aLoc;
+		word_t bLoc;
 		bool skipStore;
+		
+		auto aArg = getArgument(instruction, 0);
+		auto bArg = getArgument(instruction, 1);
 
 		if (opcode == OP_NONBASIC) {
 			nonbasicOpcode = (nonbasicOpcode_t) getArgument(instruction, 0);
-			aLoc = evaluateArgument(getArgument(instruction, 1));
+			
+			evaluateArgument(getArgument(instruction, 1), aLoc);
 			skipStore = 1;
 		} else {
-			aLoc = evaluateArgument(getArgument(instruction, 0));
-			bLoc = evaluateArgument(getArgument(instruction, 1));
+			aLoc = getValue(aArg);
+			bLoc = getValue(bArg);
 			skipStore = isConst(getArgument(instruction, 0));		// If literal
 		}
 		word_t result = 0;
@@ -146,7 +156,7 @@ int Cpu::run(std::string filename)
 				// 0x01 JSR - pushes the address of next instruction onto stack.
 				// Sets PC to A
 				memory[--stackPointer] = programCounter;
-				programCounter = *aLoc;
+				programCounter = aLoc;
 				cycle += 2;
 				break;
 			default:
@@ -158,56 +168,56 @@ int Cpu::run(std::string filename)
 
 		case OP_SET:
 			// Set value of A to B
-			result = *bLoc;
+			result = bLoc;
 			cycle += 1;
 
 			if (OPCODE_DEBUGGING) {
 				setCursorPos(TERM_WIDTH + 6, 2);
-				std::cout << "SET A to " << *bLoc;
+				std::cout << "SET A to " << bLoc;
 			}
 			break;
 
 		case OP_ADD:
 			// Add B to A, sets O
-			result = *aLoc + *bLoc;
-			overflow = (result < *aLoc || result < *bLoc);
+			result = aLoc + bLoc;
+			overflow = (result < aLoc || result < bLoc);
 			cycle += 2;
 
 			if (OPCODE_DEBUGGING) {
 				setCursorPos(TERM_WIDTH + 6, 2);
-				std::cout << "ADD " << *bLoc << " to A";
+				std::cout << "ADD " << bLoc << " to A";
 			}
 			break;
 
 		case OP_SUB:
 			// Subtracts B from a, sets O
-			result = *aLoc - *bLoc;
-			overflow = (result > *aLoc) ? 0xFFFF : 0;
+			result = aLoc - bLoc;
+			overflow = (result > aLoc) ? 0xFFFF : 0;
 			cycle += 2;
 
 					if (OPCODE_DEBUGGING) {
 				setCursorPos(TERM_WIDTH + 6, 2);
-				std::cout << "SUB " << *bLoc << " FROM A";
+				std::cout << "SUB " << bLoc << " FROM A";
 			}
 			break;
 
 		case OP_MUL:
 			// Multiple A by B, set O
-			resultWithCarry = (unsigned int) *aLoc * (unsigned int) *bLoc;
+			resultWithCarry = (unsigned int) aLoc * (unsigned int) bLoc;
 			result = (word_t) (resultWithCarry & 0xFFFF);	// Low word
 			overflow = (word_t) (resultWithCarry >> 16);	// High word
 			cycle += 2;
 
 				if (OPCODE_DEBUGGING) {
 				setCursorPos(TERM_WIDTH + 6, 2);
-				std::cout << "MUL A by " << *bLoc;
+				std::cout << "MUL A by " << bLoc;
 			}
 			break;
 
 		case OP_DIV:
 			// Divide A by B, set O
-			if (*bLoc != 0) {
-				resultWithCarry = ((unsigned int) *aLoc << 16) / (unsigned int) *bLoc;
+			if (bLoc != 0) {
+				resultWithCarry = ((unsigned int) aLoc << 16) / (unsigned int) bLoc;
 				result = (word_t) (resultWithCarry >> 16);		// High word
 				overflow = (word_t) (resultWithCarry & 0xFFFF);	// Low word
 			} else {
@@ -219,14 +229,14 @@ int Cpu::run(std::string filename)
 			
 						if (OPCODE_DEBUGGING) {
 				setCursorPos(TERM_WIDTH + 6, 2);
-				std::cout << "DIV A by " << *bLoc;
+				std::cout << "DIV A by " << bLoc;
 			}
 			break;
 
 		case OP_MOD:
 			// Remainder of A over B
-			if (*bLoc != 0) {
-				result = *aLoc % *bLoc;
+			if (bLoc != 0) {
+				result = aLoc % bLoc;
 			} else {
 				result = 0;
 			}
@@ -235,13 +245,13 @@ int Cpu::run(std::string filename)
 			
 			if (OPCODE_DEBUGGING) {
 				setCursorPos(TERM_WIDTH + 6, 2);
-				std::cout << "Remainder of A over  " << *bLoc;
+				std::cout << "Remainder of A over  " << bLoc;
 			}
 			break;
 
 		case OP_SHL:
 			// Shift A left B places, set O
-			resultWithCarry = (unsigned int) *aLoc << *bLoc;
+			resultWithCarry = (unsigned int) aLoc << bLoc;
 			result = (word_t) (resultWithCarry & 0xFFFF);
 			overflow = (word_t) (resultWithCarry >> 16);
 			cycle += 2;
@@ -249,7 +259,7 @@ int Cpu::run(std::string filename)
 
 		case OP_SHR:
 			// Shift A right B places, set O
-			resultWithCarry = (unsigned int) *aLoc >> *bLoc;
+			resultWithCarry = (unsigned int) aLoc >> bLoc;
 			result = (word_t) (resultWithCarry >> 16);
 			overflow = (word_t) (resultWithCarry & 0xFFFF);
 			cycle += 2;
@@ -257,56 +267,58 @@ int Cpu::run(std::string filename)
 
 		case OP_AND:
 			// Binary AND of A and B
-			result = *aLoc & *bLoc;
+			result = aLoc & bLoc;
 			cycle += 1;
 			break;
 
 		case OP_BOR:
 			// Binary OR of A and B
-			result = *aLoc | *bLoc;
+			result = aLoc | bLoc;
 			cycle += 1;
 			break;
 
 		case OP_XOR:
 			// Binary XOR of A and B
-			result = *aLoc ^ *bLoc;
+			result = aLoc ^ bLoc;
 			cycle += 1;
 			break;
 
 		case OP_IFE:
 			// Skip next instruction if A != B
 			skipStore = 1;
-			skipNext = !!(*aLoc != *bLoc);
+			skipNext = !!(aLoc != bLoc);
 			cycle += (2 + skipNext);		// 2, +1 if skipped
 			break;
 
 		case OP_IFN:
 			// Skip next instruction if A == B
 			skipStore = 1;
-			skipNext = !!(*aLoc == *bLoc);
+			skipNext = !!(aLoc == bLoc);
 			cycle += (2 + skipNext);
 			break;
 
 		case OP_IFG:
 			// Skip next instruction if A <= B
 			skipStore = 1;
-			skipNext = !!(*aLoc <= *bLoc);
+			skipNext = !!(aLoc <= bLoc);
 			cycle += (2 + skipNext);
 			break;
 
 		case OP_IFB:
 			// Skip next instruction if (A & B) == 0
 			skipStore = 1;
-			skipNext = (!(*aLoc & *bLoc));
+			skipNext = (!(aLoc & bLoc));
 			cycle += (2 + skipNext);
 			break;
 
 		}
 
+		setValue(aArg, result);
+
 		// Store result back in A, if it's not being skipped
 		if (!skipStore) {
 			// Halt?
-			if (aLoc == &programCounter && result == executingPC
+			if (&aLoc == &programCounter && result == executingPC
 				&& ((opcode == OP_SET && getArgument(instruction, 1) == ARG_NEXTWORD)
 				|| (opcode == OP_SUB && getArgument(instruction, 1) == ARG_LITERAL_START + 1))) {
 					std::cout << "SYSTEM HALTED!" << std::endl;
@@ -314,11 +326,11 @@ int Cpu::run(std::string filename)
 			}
 
 			// Check if video needs to be updated
-			if (aLoc >= &memory[CONSOLE_START] && aLoc < &memory[CONSOLE_END]) {
+			if (&aLoc >= &memory[CONSOLE_START] && &aLoc < &memory[CONSOLE_END]) {
 				videoDirty = true;
 			}
 
-			*aLoc = result;
+			aLoc = result;
 		}
 
 		// Skip next instruction if needed
@@ -399,7 +411,10 @@ word_t* Cpu::evaluateArgument(argument_t argument)
 			std::cout << "literal " << argument - ARG_LITERAL_START << std::endl;
 		}
 
-		return &literals[argument - ARG_LITERAL_START];
+		// (ARG_LITERAL_START + (argument == 0xffff ? 0x00 : 0x01))
+	
+		auto test = (argument - 0x21) & 0xffff;
+		return &literals[test];
 	}
 
 	// Single values
@@ -481,16 +496,189 @@ word_t* Cpu::evaluateArgument(argument_t argument)
 	};
 }
 
+void Cpu::evaluateArgument(argument_t argument, word_t& argumentResult)
+{
+	if (argument >= ARG_REG_START && argument < ARG_REG_END) {
+		// Register value
+		word_t regNumber = argument - ARG_REG_START;
+
+		if (DEBUG) {
+			std::cout << "register " << regNumber << std::endl;
+		}
+
+		argumentResult = registers[regNumber];
+
+		return;
+	}
+
+	if (argument >= ARG_REG_INDEX_START && argument < ARG_REG_INDEX_END) {
+		// [register value] - Value at address in register
+		word_t regNumber = argument - ARG_REG_INDEX_START;
+
+		if (DEBUG) {
+			std::cout << "[register " << regNumber << "]" << std::endl;
+		}
+
+		argumentResult = memory[registers[regNumber]];
+
+		return;
+	}
+
+	if (argument >= ARG_REG_NEXTWORD_INDEX_START && argument < ARG_REG_NEXTWORD_INDEX_END) {
+		// [next ram word + register value] - Memory address offset by register value
+		word_t regNumber = argument - ARG_REG_NEXTWORD_INDEX_START;
+
+		if (DEBUG) {
+			std::cout << "[" << memory[programCounter] << " + register " << regNumber + "]" << std::endl;
+		}
+
+		cycle++;
+
+		argumentResult = memory[registers[regNumber] + memory[programCounter++]];
+
+		return;
+	}
+
+	if (argument >= ARG_LITERAL_START && argument < ARG_LITERAL_END) {
+		// Literal value 0-31 - does nothing on assign
+		if (DEBUG) {
+			std::cout << "literal " << argument - ARG_LITERAL_START << std::endl;
+		}
+
+		// (ARG_LITERAL_START + (argument == 0xffff ? 0x00 : 0x01))
+
+		argumentResult = (argument - 0x21) & 0xffff;
+		// literals[argumentResult] = ar;
+
+		return;
+	}
+
+	// Single values
+	switch (argument) {
+	case ARG_POP:
+		// Value at stack address, increments stack counter
+		if (DEBUG) {
+			std::cout << "POP" << std::endl;
+		}
+
+		argumentResult = memory[stackPointer++];
+
+		break;
+	case ARG_PEEK:
+		// Value at stack address
+		if (DEBUG) {
+			std::cout << "PEEK" << std::endl;
+		}
+
+		argumentResult = memory[stackPointer];
+	
+		break;
+	case ARG_PUSH:
+		// Decreases stack address, returns value at stack address
+		if (DEBUG) {
+			std::cout << "PUSH" << std::endl;
+		}
+
+		argumentResult = memory[--stackPointer];
+		break;
+
+	case ARG_SP:
+		// Current stack pointer value
+		if (DEBUG) {
+			std::cout << "stack pointer" << std::endl;
+		}
+
+		argumentResult = stackPointer;
+		break;
+
+	case ARG_PC:
+		// Program counter
+		if (DEBUG) {
+			std::cout << "program counter" << std::endl;
+		}
+
+		argumentResult = programCounter;
+		break;
+
+	case ARG_O:
+		// Overflow
+		if (DEBUG) {
+			std::cout << "overflow" << std::endl;
+		}
+
+		argumentResult = overflow;
+		break;
+
+	case ARG_NEXTWORD_INDEX:
+		// Next word of ram
+		if (DEBUG) {
+			std::cout << "[" << memory[programCounter] << "]" << std::endl;
+		}
+
+		cycle++;
+		argumentResult = memory[memory[programCounter++]];
+		break;
+
+	case ARG_NEXTWORD:
+		// Next word of ram - literal
+		if (DEBUG) {
+			std::cout << memory[programCounter] << std::endl;
+		}
+
+		cycle++;
+		argumentResult = memory[programCounter++];
+		break;
+
+	};
+}
+
+word_t Cpu::getValue(argument_t argument)
+{
+	if (argument < ARG_REG_END) {
+		auto regNum = argument - ARG_REG_START;
+		return registers[regNum];
+
+	} else if (argument == ARG_PC) {
+		return programCounter || 0;
+	}
+	else {
+		return (argument - 0x21) & 0xffff;
+	}
+}
+
+void Cpu::setValue(argument_t argument, word_t value)
+{
+	if (argument < ARG_REG_END) {
+		auto regNum = argument - ARG_REG_START;
+
+		registers[regNum] = value;
+
+	} else if (argument == ARG_PC) {
+		programCounter = value;
+	}
+
+
+}
+
 // Get an opcode from instruction
 opcode_t Cpu::getOpcode(instruction_t instruction)
 {
 	return instruction & 0xF;
 }
 
-argument_t Cpu::getArgument(instruction_t instruction, bool_t which)
+argument_t Cpu::getArgument(instruction_t instruction, boolean argB)
 {
 	// First 6 bits for true, second 6 for false
-	return ((instruction >> 4) >> 6 * which) & 0x3F;
+//	return ((instruction >> 4) >> 6 * which) & 0x3F;
+
+	if (argB) {
+		return (instruction >> 10) & 0x3f;
+	}
+	else {
+		return (instruction >> 5) & 0x1f;
+	}
+
+//	return (instruction >> (which ? 5 : 10)) & 0x3F;
 }
 
 instruction_t Cpu::setOpcode(instruction_t instruction, opcode_t opcode) 

@@ -1,1 +1,8 @@
-SET pc, 2
+SET A, 20
+SET B, 2
+
+SHL A, B       ; shift A left by B bits
+SHR A, B       ; shift A right by B bits
+AND A, B       ; "and" of A and B
+BOR A, B       ; "or" of A and B
+XOR A, B       ; "exclusive or" of A and B
