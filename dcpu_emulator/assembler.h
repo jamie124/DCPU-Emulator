@@ -42,7 +42,11 @@ private:
 	std::string& rtrim(std::string& str);
 	std::string& trim(std::string& str);
 
-	unsigned int split(const std::string &txt, std::vector<std::string> &strs, char ch);
+	unsigned int split(const std::string &txt, std::vector<std::string> &strs, char splitChar);
+
+	std::string replace(const std::string& input, char from, char to);
+
+	std::string toLower(const std::string& input);
 
 	int processLine(
 		const std::string& currentLine, 

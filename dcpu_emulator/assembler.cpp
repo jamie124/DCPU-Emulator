@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string>
 #include <locale>
+#include <sstream>
 
 
 Assembler::Assembler(void)
@@ -147,6 +148,8 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 	// If it begins with 0-9 it's a number
 	if (arg[0] >= '0' && arg[0] <= '9') {
 		int argValue;
+		
+		/*
 		char* format;
 
 		if (arg.length() > 2 && arg[0] == '0' && arg[1] == 'x') {
@@ -157,6 +160,19 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 			// Decimal
 			format = "%d";
 		}
+		*/
+
+		std::stringstream ss;
+
+		if (arg.find("0x") != std::string::npos) {
+			ss << std::hex << arg;
+		}
+		else {
+			ss << std::dec << arg;
+		}
+
+		ss >> argValue;
+
 
 		//if (sscanf(arg, format, &argValue) != 1) {
 		//	std::cout << "ERROR: Invalid literal value: " << arg << std::endl;
@@ -165,8 +181,8 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 		//	return toReturn;
 		//}
 
-		if (argValue < ARG_LITERAL_END - ARG_LITERAL_START) {
-			toReturn.argument = ARG_LITERAL_START + argValue;
+		if (argValue == 0xffff || argValue <  ARG_LITERAL_START) {
+			toReturn.argument = ARG_LITERAL_START + (argValue == 0xffff ? 0x00 : (0x01 + argValue));
 
 			return toReturn;
 		}
@@ -284,40 +300,42 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 		}
 	}
 
+	auto reserved = toLower(arg);
+
 	// Check for reserved words
-	if (arg == "pop") {
+	if (reserved == "pop") {
 		toReturn.argument = ARG_POP;
 		return toReturn;
 	}
 
-	if (arg == "peek") {
+	if (reserved == "peek") {
 		toReturn.argument = ARG_PEEK;
 		return toReturn;
 	}
 
-	if (arg == "push") {
+	if (reserved == "push") {
 		toReturn.argument = ARG_PUSH;
 		return toReturn;
 	}
 
-	if (arg == "sp") {
+	if (reserved == "sp") {
 		toReturn.argument = ARG_SP;
 		return toReturn;
 	}
 
-	if (arg == "pc") {
+ 	if (reserved == "pc") {
 		toReturn.argument = ARG_PC;
 		return toReturn;
 	}
 
-	if (arg == "o") {
+	if (reserved == "o") {
 		toReturn.argument = ARG_O;
 		return toReturn;
 	}
 
 	// Is register?
-	if (arg.length() == 1) {
-		int regNum = registerFor(arg[0]);
+	if (reserved.length() == 1) {
+		int regNum = registerFor(reserved[0]);
 		if (regNum != -1) {
 			toReturn.argument = ARG_REG_START + regNum;
 			return toReturn;
@@ -334,21 +352,26 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 	return toReturn;
 }
 
-std::string replace(const std::string& str, const std::string& from, const std::string& to) {
+std::string replaceStr(const std::string& str, const std::string& from, const std::string& to) {
 	std::string temp = str;
 
-	size_t start_pos = str.find(from);
-	if (start_pos == std::string::npos) {
-		return false;
+	size_t start_pos = temp.find(from);
+	while (start_pos != std::string::npos) {
+		temp.replace(start_pos, from.length(), to);
+
+		start_pos = temp.find(from);
+
 	}
 
-	return temp.replace(start_pos, from.length(), to);
+	return temp;
+
+//	return temp.replace(start_pos, from.length(), to);
 
 }
 
 int Assembler::compile(const std::string& filename)
 {
-	std::string compiledFilename = replace(filename, "dasm16", "bin");
+	std::string compiledFilename = replaceStr(filename, "dasm16", "bin");
 
 	std::ifstream sourceFile(filename);
 
@@ -413,6 +436,9 @@ int Assembler::compile(const std::string& filename)
 		data = "";
 
 		std::getline(sourceFile, currentLine);
+
+		currentLine = replaceStr(currentLine, "\t", " ");
+		currentLine = trim(currentLine);
 
 		std::cout << currentLine;
 		//if (sourceFile.getline(lineBuffer, MAX_CHARS).eof()) {
@@ -529,9 +555,10 @@ int Assembler::compile(const std::string& filename)
 		}
 
 		instruction_t packed = 0;
-		packed = Cpu::setOpcode(packed, instruction->opcode);
-		packed = Cpu::setArgument(packed, 0, instruction->a.argument);
-		packed = Cpu::setArgument(packed, 1, instruction->b.argument);
+		//packed = Cpu::setOpcode(packed, instruction->opcode);
+	//	packed = Cpu::setArgument(packed, 0, instruction->a.argument);
+		//packed = Cpu::setArgument(packed, 1, instruction->b.argument);
+		packed = (instruction->b.argument << 10) | (instruction->a.argument << 5) | instruction->opcode;
 
 		// Save instruction
 		std::cout << address << ": Assembled instruction: " << packed << std::endl;
@@ -618,8 +645,8 @@ std::string& Assembler::trim(std::string& str)
 
 unsigned int Assembler::split(const std::string &txt, std::vector<std::string> &strs, char ch)
 {
-	unsigned int pos = txt.find(ch);
-	unsigned int initialPos = 0;
+	auto pos = txt.find(ch);
+	auto initialPos = 0;
 	strs.clear();
 
 	// Decompose statement
@@ -636,6 +663,24 @@ unsigned int Assembler::split(const std::string &txt, std::vector<std::string> &
 	return strs.size();
 }
 
+std::string Assembler::replace(const std::string& input, char from, char to)
+{
+	std::string s = input;
+
+	std::replace(s.begin(), s.end(), from, to);
+
+	return s;
+}
+
+std::string Assembler::toLower(const std::string& input)
+{
+	auto arg = input;
+
+	std::transform(arg.begin(), arg.end(), arg.begin(), ::tolower);
+
+	return arg;
+}
+
 // Split up the line and work out what values are in it.
 // This is sort of shit, will need to update this at some point.
 int Assembler::processLine(const std::string& currentLine, std::string& data, std::string& label, bool &functionOnNextLine,
@@ -646,176 +691,67 @@ int Assembler::processLine(const std::string& currentLine, std::string& data, st
 
 	split(currentLine, splitStr, ' ');
 
-	int lineIndex = 0;						// Current position in line
-	int itemIndex = 0;						// Current position in item being stored
+	splitStr.erase(std::remove(splitStr.begin(), splitStr.end(), " "), splitStr.end());
+
+	//int lineIndex = 0;						// Current position in line
+//	int itemIndex = 0;						// Current position in item being stored
 
 	if (containsLabel) {
 		// Don't include ':' in label
-		lineIndex++;
 
-		// Read in until either a space or end of line is found
-		while (currentLine[lineIndex] != ' '  && currentLine[lineIndex] != '\t'
-			&& currentLine[lineIndex] != '\n' && currentLine[lineIndex] != '\0') {
+		label = trim(replace(splitStr[0], ',', ' '));
+		label = replaceStr(label, ":", "");
 
-			label[itemIndex++] = tolower(currentLine[lineIndex++]);
-		}
-
-		label[itemIndex++] = '\0';
-
-		int tempLineIndex = lineIndex;
-
-		if (currentLine[lineIndex] == '\0') {
+		if (splitStr.size() == 1) {
 			functionOnNextLine = true;
 			return 1;
 		}
-		else {
-			while (currentLine[tempLineIndex] == ' ' || currentLine[tempLineIndex] == '\t'
-				|| currentLine[tempLineIndex] != '\0') {
-
-				if (currentLine[tempLineIndex] >= 65 && currentLine[tempLineIndex] < 123) {
-					functionOnNextLine = false;
-					break;
-				}
-				else {
-					functionOnNextLine = true;
-				}
-
-				tempLineIndex++;
-			}
-		}
-
-		// Consume whitespace between label and command if needed
-		lineIndex++;
 
 	}
 
-	itemIndex = 0;
-
-	//lineIndex++;
-
-	// Check if label is on the same line as first statement
-	/*
-	if ((currentLine[lineIndex] >= 32 && currentLine[lineIndex] < 127) &&
-		(currentLine[lineIndex] != ' ' || currentLine[lineIndex] != '\t')) {
-		// Consume any spaces or tabs between label and command
-		while (currentLine[lineIndex] == ' ' || currentLine[lineIndex] == '\t') {
-			lineIndex++;
-		}
-
-		while (currentLine[lineIndex] != ' ') {
- 			command[itemIndex++] = currentLine[lineIndex++];
-		}
-	}
-	else {
-		lineIndex = 0;
-		while (currentLine[lineIndex] == ' ' || currentLine[lineIndex] == '\t') {
-			lineIndex++;
-		}
-
-		while (currentLine[lineIndex] != ' ' || currentLine[lineIndex] == '\t') {
-			command[itemIndex++] = currentLine[lineIndex++];
-		}
-	}
-	*/
 	
 	int offset = (containsLabel ? 1 : 0);
 
 	if (splitStr.size() > 1) {
-		command = trim(splitStr[offset]);
+		command = trim(splitStr[offset]); 
+
+		command = toLower(command);
 	}
 	else {
 		command = "";
 	}
 
-	//command[itemIndex++] = '\0';
-
-	itemIndex = 0;
 
 	// Check if remaining data belongs to 'dat' command.
 	//int i = strcmp(command, "dat");
 	//if (strcmp(command, "dat") == 0) {
 	if (command == "dat") {
-		while (currentLine[lineIndex] == ' ' || currentLine[lineIndex] == '\t') {
-			lineIndex++;
+
+		std::string temp = currentLine;
+
+		if (containsLabel) {
+			temp = replaceStr(temp, ":" + label, "");
+			
 		}
+		
+		data = trim(replaceStr(temp, "dat", ""));
 
-		while (currentLine[lineIndex] != '\0' && currentLine[lineIndex] != ';'
-			&& currentLine[lineIndex] != '0' && currentLine[lineIndex] != '\n') {
-			data[itemIndex++] = currentLine[lineIndex++];
-		}
 
-		data[itemIndex++] = '\0';
-
+		std::cout << "";
 	}
 	else {
 
-		/*
-		itemIndex = 0;
-
-		while (currentLine[lineIndex] == ' ' || currentLine[lineIndex] == '\t') {
-			lineIndex++;
-		}
-
-		// Find first arg
-		// This will start with either 'a-z', 'A-Z', or '['
-		if ((currentLine[lineIndex] >= 48 && currentLine[lineIndex] < 58)
-			|| (currentLine[lineIndex] >= 65 && currentLine[lineIndex] < 123)
-			|| currentLine[lineIndex] == '[') {
-			while (currentLine[lineIndex] != ',' && currentLine[lineIndex] != ' ') {
-				if (currentLine[lineIndex] == '\0') {
-					// ',' was not found
-					std::cout << "\",\" not found." << std::endl;
-
-					return -1;
-				}
-
-				arg1[itemIndex++] = currentLine[lineIndex++];
-			}
-		}
-
-		arg1[itemIndex++] = '\0';
-		*/
-		arg1 = trim(splitStr[offset + 1]);
-
-  		itemIndex = 0;
-
-		// Find second arg, optional
-		// Find start of second arg
-		bool hasArg2 = false;
-
-		if (currentLine[lineIndex] == ',') {
-			// Check next character for ',' indicating a second arg
-			hasArg2 = true;
-		}
-		else {
-			while (currentLine[lineIndex] == ' ' && currentLine[lineIndex] != '\0') {
-				lineIndex++;
-			}
-			if (currentLine[lineIndex] == ',') {
-				hasArg2 = true;
-			}
-		}
-
-		if (hasArg2) {
-			while (currentLine[lineIndex] < 48 || currentLine[lineIndex] >= 123) {
-				lineIndex++;
-			}
-
-			while (currentLine[lineIndex] != '\0' && currentLine[lineIndex] != ' '
-				&& currentLine[lineIndex] != '\t' && currentLine[lineIndex] != '\n') {
-
-				arg2[itemIndex++] = currentLine[lineIndex++];
-			}
+		arg1 = trim(replace(splitStr[offset + 1], ',', ' '));
 
 
-			arg2[itemIndex++] = '\0';
-		}
-		else {
-			arg2[0] = '\0';
+		if (splitStr.size() > (offset + 1)) {
+		
+			arg2 = trim(replaceStr(replaceStr(splitStr[offset + 2], ",", ""), "\t", ""));
 		}
 
 	}
-	itemIndex = 0;
+
+	return 0;
 }
 
 // Process the command
@@ -951,11 +887,11 @@ int Assembler::processCommand(const std::string& command, std::string data, word
 void Assembler::processArg1(const std::string& command, const std::string& arg, word_t &address, const std::string& label,
 	AssembledInstructionPtr &instruction)
 {
-	int i = 0;
+	//int i = 0;
 
-	bool preserveArg = false;
-	char tempArg[MAX_CHARS], preservedArg[MAX_CHARS];
-	int j = 0, temp = 0;
+	//bool preserveArg = false;
+	//char tempArg[MAX_CHARS], preservedArg[MAX_CHARS];
+	//int j = 0, temp = 0;
 
 	/*
 	int len = strlen(arg);

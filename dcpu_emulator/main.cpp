@@ -16,11 +16,11 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	std::unique_ptr<Assembler> assembler = std::make_unique<Assembler>();
 
-	assembler->compile("demo_asm\\hello.dasm16");
+	assembler->compile("demo_asm\\basic.dasm16");
 
-//	std::unique_ptr<Cpu> cpu = std::make_unique<Cpu>();
+	std::unique_ptr<Cpu> cpu = std::make_unique<Cpu>();
 
-//	cpu->run("demo_asm\\hello.bin");
+	cpu->run("demo_asm\\basic.bin");
 
 	
 	std::cin >> pause;

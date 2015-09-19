@@ -54,7 +54,7 @@ static const word_t ARG_PC = 28;
 static const word_t ARG_O = 29;
 static const word_t ARG_NEXTWORD_INDEX = 30;
 static const word_t ARG_NEXTWORD = 31;
-static const word_t ARG_LITERAL_START = 32;
+static const word_t ARG_LITERAL_START = 0x20;
 static const word_t ARG_LITERAL_END = 64;
 
 const long MEMORY_LIMIT = 0x10000;
