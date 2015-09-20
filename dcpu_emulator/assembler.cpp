@@ -187,7 +187,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 			return toReturn;
 		}
 
-		toReturn.argument = ARG_NEXTWORD;
+		toReturn.argument = ARG_NEXTWORD_LITERAL;
 		toReturn.nextWord = argValue;
 
 		return toReturn;
@@ -236,7 +236,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 			else {
 				// Just hex in brackets
 				// TODO: enforce closing
-				toReturn.argument = ARG_NEXTWORD_INDEX;
+				toReturn.argument = ARG_NEXTWORD;
 				toReturn.nextWord = hexValue;
 				return toReturn;
 			}
@@ -304,7 +304,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 
 	// Check for reserved words
 	if (reserved == "pop") {
-		toReturn.argument = ARG_POP;
+		toReturn.argument = ARG_PUSH_POP;
 		return toReturn;
 	}
 
@@ -314,7 +314,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 	}
 
 	if (reserved == "push") {
-		toReturn.argument = ARG_PUSH;
+		toReturn.argument = ARG_PUSH_POP;
 		return toReturn;
 	}
 
@@ -342,13 +342,27 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 		}
 	}
 
-	toReturn.argument = ARG_NEXTWORD;
+	auto label = _foundLabels.find(arg);
 
-	// Store label for later
-	//char* label = (char*)malloc(strlen(arg) + 1);
-	//strcpy(label, arg);
+	if (label != _foundLabels.end()) {
+		auto labelPos = label->second;
+		if (labelPos == 0xffff || labelPos < 31) {
+			toReturn.argument = 0x20 + (labelPos == 0xffff ? 0x00 : (0x01 + labelPos));
+		}
+		else {
 
-	toReturn.labelReference = arg;
+			toReturn.argument = ARG_NEXTWORD_LITERAL;
+			toReturn.nextWord = labelPos;
+		}
+	}
+	else {
+		// Resolve later
+		toReturn.argument = ARG_NEXTWORD_LITERAL;
+		toReturn.labelReference = arg;
+	
+	}
+
+	//toReturn.labelReference = arg;
 	return toReturn;
 }
 
@@ -446,20 +460,17 @@ int Assembler::compile(const std::string& filename)
 
 
 		// Check if whole line is a blank
-		if (currentLine != "") {
+		if (currentLine != "" && currentLine[0] != ';') {
 
-			if (currentLine[0] == ';') {
-				// Skip comments
-				continue;
-			}
-			
-				std::cout << currentLine;
+			std::cout << currentLine;
 
 			// Non blank line, start processing
 
 			// Get label if applicable
 			if (currentLine[0] == ':') {
 				processLine(currentLine, data, label, skipTillNextLine, command, arg1, arg2, true);
+
+				_foundLabels[label] = address;
 
 				std::cout << "label: " << label << " " << std::endl;
 
@@ -519,7 +530,15 @@ int Assembler::compile(const std::string& filename)
 				if (other->label != "" && (other->label == instruction->b.labelReference)) {
 					// Match
 					std::cout << "Resolved " << instruction->b.labelReference << " to address " << other->address << std::endl;
-					instruction->b.nextWord = other->address;
+
+				//	if (other->address == 0xffff || other->address < 31) {
+				//		instruction->b.argument = 0x20 + (other->address == 0xffff ? 0x00 : 0x01 + other->address);
+
+				//	}
+				//	else {
+						instruction->b.argument = ARG_NEXTWORD_LITERAL;
+						instruction->b.nextWord = other->address;
+					//}
 					instruction->b.labelReference = "";
 					break;
 				}
@@ -702,6 +721,10 @@ int Assembler::processLine(const std::string& currentLine, std::string& data, st
 		label = replaceStr(label, ":", "");
 
 		if (splitStr.size() == 1) {
+			functionOnNextLine = true;
+			return 1;
+		}
+		else if (splitStr.at(1).find(";") != std::string::npos) {
 			functionOnNextLine = true;
 			return 1;
 		}

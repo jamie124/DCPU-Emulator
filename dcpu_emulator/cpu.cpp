@@ -5,7 +5,7 @@ Written by James Whitwell, 2012.
 CPU emulation class
 This code orginally based on dcpu-emu https://bitbucket.org/interfect/dcpu-emu
 
-Started 7-Apr-2012 
+Started 7-Apr-2012
 */
 
 #include "StdAfx.h"
@@ -15,7 +15,6 @@ Started 7-Apr-2012
 #include <stdio.h>
 
 
-//word_t* memory;
 word_t* registers;
 
 word_t programCounter;
@@ -26,8 +25,6 @@ word_t cycle;
 
 word_t keyboardPosition;
 
-word_t* literals;
-
 word_t* colourTable;
 
 Cpu::Cpu()
@@ -35,19 +32,6 @@ Cpu::Cpu()
 	DEBUG = false;
 	OPCODE_DEBUGGING = true;
 
-	// Setup literals
-	literals = new word_t[ARG_LITERAL_END - ARG_LITERAL_START];
-	for (int i = 0; i < ARG_LITERAL_END - ARG_LITERAL_START; i++) {
-		literals[i] = i;
-	}
-
-	/*
-	memory = new word_t[MEMORY_LIMIT];
-	// Init memory
-	for (int i = 0; i < MEMORY_LIMIT; i++) {
-		_memory[i] = 0;
-	}
-	*/
 	_memory.resize(MEMORY_LIMIT);
 
 
@@ -75,16 +59,9 @@ Cpu::Cpu()
 	colourTable[14] = 11; // Yellow
 	colourTable[15] = 15; // White
 
-	/*
-	for(int i = 0; i < NUM_COLOURS; i++) {
-	for (int j = 0; j < NUM_COLOURS; j++) {
-	initPair(getColourPair(i, j), colourTable[i], colourTable[j]);
-	}
-	}
-	*/
 
-	programCounter = 0;
-	stackPointer = 0;
+	programCounter = 0x0;
+	stackPointer = 0x0;
 	overflow = 0;
 
 	cycle = 0;
@@ -93,8 +70,6 @@ Cpu::Cpu()
 
 Cpu::~Cpu()
 {
-	delete literals;
-//	delete memory;
 	delete registers;
 	delete colourTable;
 }
@@ -103,26 +78,15 @@ int Cpu::run(std::string filename)
 {
 	clearScreen();
 
-//	FILE * program = fopen(filename.c_str(), "r");
-
-//	if (!program) {
-	//	std::cout << "File could not be opened" << std::endl;
-
-	//	return -1;
-//	}
-
-	//fread(memory, sizeof(word_t), MEMORY_LIMIT, program);
-	//fread(memory, sizeof(word_t), MEMORY_LIMIT, program);
-//	fclose(program);
 
 	std::ifstream input(filename.c_str(), std::ios::binary);
-	
+
 	uint32_t index = 0;
 
 	if (input.is_open()) {
-		
+
 		while (!input.eof()) {
-	
+
 			input.read(reinterpret_cast<char*>(&_memory.at(index++)), sizeof word_t);
 
 		}
@@ -135,7 +99,7 @@ int Cpu::run(std::string filename)
 
 	int pause;
 
-	while(1) {
+	while (1) {
 
 		std::cin.get();
 
@@ -150,18 +114,19 @@ int Cpu::run(std::string filename)
 		word_t aLoc;
 		word_t bLoc;
 		bool skipStore;
-		
+
 		auto aArg = getArgument(instruction, 0);
 		auto bArg = getArgument(instruction, 1);
 
 		if (opcode == OP_NONBASIC) {
-			nonbasicOpcode = (nonbasicOpcode_t) getArgument(instruction, 0);
-			
-			evaluateArgument(getArgument(instruction, 1), aLoc);
+			nonbasicOpcode = (nonbasicOpcode_t)getArgument(instruction, 0);
+
+		//	evaluateArgument(getArgument(instruction, 1), aLoc);
 			skipStore = 1;
-		} else {
-			aLoc = getValue(aArg);
-			bLoc = getValue(bArg);
+		}
+		else {
+			aLoc = getValue(aArg, false);
+			bLoc = getValue(bArg, true);
 			skipStore = isConst(getArgument(instruction, 0));		// If literal
 		}
 		word_t result = 0;
@@ -170,11 +135,11 @@ int Cpu::run(std::string filename)
 		unsigned int resultWithCarry;		// Some opcodes use internal variable
 		bool skipNext = 0;				// Skip the next instruction
 
-		switch(opcode) {
+		switch (opcode) {
 		case OP_NONBASIC:
 			skipStore = 1;
 
-			switch(nonbasicOpcode) {
+			switch (nonbasicOpcode) {
 			case OP_JSR:
 				// 0x01 JSR - pushes the address of next instruction onto stack.
 				// Sets PC to A
@@ -218,7 +183,7 @@ int Cpu::run(std::string filename)
 			overflow = (result > aLoc) ? 0xFFFF : 0;
 			cycle += 2;
 
-					if (OPCODE_DEBUGGING) {
+			if (OPCODE_DEBUGGING) {
 				setCursorPos(TERM_WIDTH + 6, 2);
 				std::cout << "SUB " << bLoc << " FROM A";
 			}
@@ -226,12 +191,12 @@ int Cpu::run(std::string filename)
 
 		case OP_MUL:
 			// Multiple A by B, set O
-			resultWithCarry = (unsigned int) aLoc * (unsigned int) bLoc;
-			result = (word_t) (resultWithCarry & 0xFFFF);	// Low word
-			overflow = (word_t) (resultWithCarry >> 16);	// High word
+			resultWithCarry = (unsigned int)aLoc * (unsigned int)bLoc;
+			result = (word_t)(resultWithCarry & 0xFFFF);	// Low word
+			overflow = (word_t)(resultWithCarry >> 16);	// High word
 			cycle += 2;
 
-				if (OPCODE_DEBUGGING) {
+			if (OPCODE_DEBUGGING) {
 				setCursorPos(TERM_WIDTH + 6, 2);
 				std::cout << "MUL A by " << bLoc;
 			}
@@ -240,17 +205,18 @@ int Cpu::run(std::string filename)
 		case OP_DIV:
 			// Divide A by B, set O
 			if (bLoc != 0) {
-				resultWithCarry = ((unsigned int) aLoc << 16) / (unsigned int) bLoc;
-				result = (word_t) (resultWithCarry >> 16);		// High word
-				overflow = (word_t) (resultWithCarry & 0xFFFF);	// Low word
-			} else {
+				resultWithCarry = ((unsigned int)aLoc << 16) / (unsigned int)bLoc;
+				result = (word_t)(resultWithCarry >> 16);		// High word
+				overflow = (word_t)(resultWithCarry & 0xFFFF);	// Low word
+			}
+			else {
 				result = 0;
 				overflow = 0;
 			}
 
 			cycle += 3;
-			
-						if (OPCODE_DEBUGGING) {
+
+			if (OPCODE_DEBUGGING) {
 				setCursorPos(TERM_WIDTH + 6, 2);
 				std::cout << "DIV A by " << bLoc;
 			}
@@ -260,12 +226,13 @@ int Cpu::run(std::string filename)
 			// Remainder of A over B
 			if (bLoc != 0) {
 				result = aLoc % bLoc;
-			} else {
+			}
+			else {
 				result = 0;
 			}
 
 			cycle += 3;
-			
+
 			if (OPCODE_DEBUGGING) {
 				setCursorPos(TERM_WIDTH + 6, 2);
 				std::cout << "Remainder of A over  " << bLoc;
@@ -276,9 +243,9 @@ int Cpu::run(std::string filename)
 			// Shift A left B places, set O
 			overflow = ((aLoc << bLoc) >> 16) & 0xffff;
 			result = (aLoc << bLoc);
-		//	resultWithCarry = (unsigned int) aLoc << bLoc;
-		//	result = (word_t) (resultWithCarry & 0xFFFF);
-		//	overflow = (word_t) (resultWithCarry >> 16);
+			//	resultWithCarry = (unsigned int) aLoc << bLoc;
+			//	result = (word_t) (resultWithCarry & 0xFFFF);
+			//	overflow = (word_t) (resultWithCarry >> 16);
 			cycle += 2;
 			break;
 
@@ -341,16 +308,14 @@ int Cpu::run(std::string filename)
 
 		}
 
-		setValue(aArg, result);
-
 		// Store result back in A, if it's not being skipped
 		if (!skipStore) {
 			// Halt?
 			if (&aLoc == &programCounter && result == executingPC
-				&& ((opcode == OP_SET && getArgument(instruction, 1) == ARG_NEXTWORD)
-				|| (opcode == OP_SUB && getArgument(instruction, 1) == ARG_LITERAL_START + 1))) {
-					std::cout << "SYSTEM HALTED!" << std::endl;
-					return -1;
+				&& ((opcode == OP_SET && getArgument(instruction, 1) == ARG_NEXTWORD_LITERAL)
+					|| (opcode == OP_SUB && getArgument(instruction, 1) == ARG_LITERAL_START + 1))) {
+				std::cout << "SYSTEM HALTED!" << std::endl;
+				return -1;
 			}
 
 			// Check if video needs to be updated
@@ -365,23 +330,25 @@ int Cpu::run(std::string filename)
 		if (skipNext) {
 			programCounter += getInstructionLength(_memory[programCounter]);
 		}
+		else {
+			setValue(aArg, result);
+		}
 
 		// TODO: Update video memory
-		
+
 		if (videoDirty) {
 			//clearScreen();
 			for (int i = 0; i < TERM_HEIGHT; i++) {
-				for (int j = 0; j < TERM_WIDTH; j +=1) {
+				for (int j = 0; j < TERM_WIDTH; j += 1) {
 					word_t toPrint = _memory[CONSOLE_START + i * TERM_WIDTH + j];
 
 					setScreen(i, j, toPrint);
 				}
-
-				//std::cout << std::endl;
 			}
+
 			videoDirty = false;
 		}
-		
+
 
 		setCursorPos(1, TERM_HEIGHT + 1);
 		printf("==== Program Status - CYCLE 0x%04hx====\n", cycle);
@@ -391,283 +358,59 @@ int Cpu::run(std::string filename)
 		printf("PC: 0x%04hx\tSP: 0x%04hx\tO:  0x%04hx\n", programCounter, stackPointer, overflow);
 		printf("Instruction: 0x%04hx\n", instruction);
 
+		// Print part of stack
+		for (int i = 0xffff; i > (0xfff0); --i) {
+			printf("0x%04hx,\t", _memory[i]);
+		}
+
 	}
 
 	return 1;
 }
 
-word_t* Cpu::evaluateArgument(argument_t argument)
-{
-	if (argument >= ARG_REG_START && argument < ARG_REG_END) {
-		// Register value
-		word_t regNumber = argument - ARG_REG_START;
 
-		if (DEBUG) {
-			std::cout << "register " << regNumber << std::endl;
-		}
-
-		return &registers[regNumber];
-	}
-
-	if (argument >= ARG_REG_INDEX_START && argument < ARG_REG_INDEX_END) {
-		// [register value] - Value at address in register
-		word_t regNumber = argument - ARG_REG_INDEX_START;
-
-		if (DEBUG) {
-			std::cout << "[register " << regNumber << "]" << std::endl;
-		}
-
-		return &_memory[registers[regNumber]];
-	}
-
-	if (argument >= ARG_REG_NEXTWORD_INDEX_START && argument < ARG_REG_NEXTWORD_INDEX_END) {
-		// [next ram word + register value] - Memory address offset by register value
-		word_t regNumber = argument - ARG_REG_NEXTWORD_INDEX_START;
-
-		if (DEBUG) {
-			std::cout << "[" << _memory[programCounter] << " + register " << regNumber + "]" << std::endl;
-		}
-
-		cycle++;
-
-		return &_memory[registers[regNumber] + _memory[programCounter++]];
-	}
-
-	if (argument >= ARG_LITERAL_START && argument < ARG_LITERAL_END) {
-		// Literal value 0-31 - does nothing on assign
-		if (DEBUG) {
-			std::cout << "literal " << argument - ARG_LITERAL_START << std::endl;
-		}
-
-		// (ARG_LITERAL_START + (argument == 0xffff ? 0x00 : 0x01))
-	
-		auto test = (argument - 0x21) & 0xffff;
-		return &literals[test];
-	}
-
-	// Single values
-	switch(argument) {
-	case ARG_POP:
-		// Value at stack address, increments stack counter
-		if (DEBUG) {
-			std::cout << "POP" << std::endl;
-		}
-
-		return &_memory[stackPointer++];
-		break;
-
-	case ARG_PEEK:
-		// Value at stack address
-		if (DEBUG) {
-			std::cout << "PEEK" << std::endl;
-		}
-
-		return &_memory[stackPointer];
-		break;
-
-	case ARG_PUSH:
-		// Decreases stack address, returns value at stack address
-		if (DEBUG) {
-			std::cout << "PUSH" << std::endl;
-		}
-
-		return &_memory[--stackPointer];
-		break;
-
-	case ARG_SP:
-		// Current stack pointer value
-		if (DEBUG) {
-			std::cout << "stack pointer" << std::endl;
-		}
-
-		return &stackPointer;
-		break;
-
-	case ARG_PC:
-		// Program counter
-		if (DEBUG) {
-			std::cout << "program counter" << std::endl;
-		}
-
-		return &programCounter;
-		break;
-
-	case ARG_O:
-		// Overflow
-		if (DEBUG) {
-			std::cout << "overflow" << std::endl;
-		}
-
-		return &overflow;
-		break;
-
-	case ARG_NEXTWORD_INDEX:
-		// Next word of ram
-		if (DEBUG) {
-			std::cout << "[" << _memory[programCounter] << "]" << std::endl;
-		}
-
-		cycle++;
-		return &_memory[_memory[programCounter++]];
-		break;
-
-	case ARG_NEXTWORD:
-		// Next word of ram - literal
-		if (DEBUG) {
-			std::cout << _memory[programCounter] << std::endl;
-		}
-
-		cycle++;
-		return &_memory[programCounter++];
-		break;
-
-	};
-}
-
-void Cpu::evaluateArgument(argument_t argument, word_t& argumentResult)
-{
-	if (argument >= ARG_REG_START && argument < ARG_REG_END) {
-		// Register value
-		word_t regNumber = argument - ARG_REG_START;
-
-		if (DEBUG) {
-			std::cout << "register " << regNumber << std::endl;
-		}
-
-		argumentResult = registers[regNumber];
-
-		return;
-	}
-
-	if (argument >= ARG_REG_INDEX_START && argument < ARG_REG_INDEX_END) {
-		// [register value] - Value at address in register
-		word_t regNumber = argument - ARG_REG_INDEX_START;
-
-		if (DEBUG) {
-			std::cout << "[register " << regNumber << "]" << std::endl;
-		}
-
-		argumentResult = _memory[registers[regNumber]];
-
-		return;
-	}
-
-	if (argument >= ARG_REG_NEXTWORD_INDEX_START && argument < ARG_REG_NEXTWORD_INDEX_END) {
-		// [next ram word + register value] - Memory address offset by register value
-		word_t regNumber = argument - ARG_REG_NEXTWORD_INDEX_START;
-
-		if (DEBUG) {
-			std::cout << "[" << _memory[programCounter] << " + register " << regNumber + "]" << std::endl;
-		}
-
-		cycle++;
-
-		argumentResult = _memory[registers[regNumber] + _memory[programCounter++]];
-
-		return;
-	}
-
-	if (argument >= ARG_LITERAL_START && argument < ARG_LITERAL_END) {
-		// Literal value 0-31 - does nothing on assign
-		if (DEBUG) {
-			std::cout << "literal " << argument - ARG_LITERAL_START << std::endl;
-		}
-
-		// (ARG_LITERAL_START + (argument == 0xffff ? 0x00 : 0x01))
-
-		argumentResult = (argument - 0x21) & 0xffff;
-		// literals[argumentResult] = ar;
-
-		return;
-	}
-
-	// Single values
-	switch (argument) {
-	case ARG_POP:
-		// Value at stack address, increments stack counter
-		if (DEBUG) {
-			std::cout << "POP" << std::endl;
-		}
-
-		argumentResult = _memory[stackPointer++];
-
-		break;
-	case ARG_PEEK:
-		// Value at stack address
-		if (DEBUG) {
-			std::cout << "PEEK" << std::endl;
-		}
-
-		argumentResult = _memory[stackPointer];
-	
-		break;
-	case ARG_PUSH:
-		// Decreases stack address, returns value at stack address
-		if (DEBUG) {
-			std::cout << "PUSH" << std::endl;
-		}
-
-		argumentResult = _memory[--stackPointer];
-		break;
-
-	case ARG_SP:
-		// Current stack pointer value
-		if (DEBUG) {
-			std::cout << "stack pointer" << std::endl;
-		}
-
-		argumentResult = stackPointer;
-		break;
-
-	case ARG_PC:
-		// Program counter
-		if (DEBUG) {
-			std::cout << "program counter" << std::endl;
-		}
-
-		argumentResult = programCounter;
-		break;
-
-	case ARG_O:
-		// Overflow
-		if (DEBUG) {
-			std::cout << "overflow" << std::endl;
-		}
-
-		argumentResult = overflow;
-		break;
-
-	case ARG_NEXTWORD_INDEX:
-		// Next word of ram
-		if (DEBUG) {
-			std::cout << "[" << _memory[programCounter] << "]" << std::endl;
-		}
-
-		cycle++;
-		argumentResult = _memory[_memory[programCounter++]];
-		break;
-
-	case ARG_NEXTWORD:
-		// Next word of ram - literal
-		if (DEBUG) {
-			std::cout << _memory[programCounter] << std::endl;
-		}
-
-		cycle++;
-		argumentResult = _memory[programCounter++];
-		break;
-
-	};
-}
-
-word_t Cpu::getValue(argument_t argument)
+word_t Cpu::getValue(argument_t argument, bool argA)
 {
 	if (argument < ARG_REG_END) {
 		auto regNum = argument - ARG_REG_START;
 		return registers[regNum];
 
-	} else if (argument == ARG_PC) {
-		return programCounter || 0;
+	}
+	else if (argument == ARG_PUSH_POP) {
+		if (argA) {
+			// Pop
+			word_t value = _memory[stackPointer];
+			stackPointer = (stackPointer + 1) & 0xffff;
+			
+			return value;
+
+		} else {
+			// Push
+			word_t value = _memory[(stackPointer - 1) & 0xffff];
+
+			stackPointer = (stackPointer - 1) & 0xffff;
+
+			return value;
+		}
+	}
+	else if (argument == ARG_PEEK) {
+		return _memory[stackPointer];
+	}
+	else if (argument == ARG_SP) {
+		return stackPointer;
+	}
+	else if (argument == ARG_PC) {
+		return programCounter;
+	}
+	else if (argument == ARG_O) {
+		return overflow;
+	}
+	else if (argument == ARG_NEXTWORD_LITERAL) {
+		word_t nextWord = _memory.at(programCounter);
+		cycle += 1;
+
+		programCounter = (programCounter + 1) & 0xffff;
+		return nextWord;
 	}
 	else {
 		return (argument - 0x21) & 0xffff;
@@ -681,17 +424,22 @@ void Cpu::setValue(argument_t argument, word_t value)
 
 		registers[regNum] = value;
 
-	} else if (argument == ARG_PC) {
+	}
+	else if (argument == ARG_PUSH_POP) {
+		_memory[stackPointer] = value;
+	}
+	else if (argument == ARG_PC) {
 		programCounter = value;
 	}
 
+	std::cout << _memory[stackPointer];
 
 }
 
 // Get an opcode from instruction
 opcode_t Cpu::getOpcode(instruction_t instruction)
 {
-	return instruction & 0xF;
+	return instruction & 0x1F;
 }
 
 argument_t Cpu::getArgument(instruction_t instruction, boolean argB)
@@ -706,23 +454,24 @@ argument_t Cpu::getArgument(instruction_t instruction, boolean argB)
 		return (instruction >> 5) & 0x1f;
 	}
 
-//	return (instruction >> (which ? 5 : 10)) & 0x3F;
+	//	return (instruction >> (which ? 5 : 10)) & 0x3F;
 }
 
-instruction_t Cpu::setOpcode(instruction_t instruction, opcode_t opcode) 
+instruction_t Cpu::setOpcode(instruction_t instruction, opcode_t opcode)
 {
 	// Clear low 4 bits and OR in opcode
-	return (instruction & 0xFFF0) | opcode; 
+	return (instruction & 0xFFF0) | opcode;
 }
 
 instruction_t Cpu::setArgument(instruction_t instruction, bool_t which, argument_t argument)
 {
 	if (!which) {
 		// A argument
-		return (instruction & 0xFC0F) | (((word_t) argument) << 4);
-	} else {
+		return (instruction & 0xFC0F) | (((word_t)argument) << 4);
+	}
+	else {
 		// B argument
-		return (instruction & 0x03FF) | (((word_t) argument) << 10);		
+		return (instruction & 0x03FF) | (((word_t)argument) << 10);
 	}
 }
 
@@ -730,15 +479,15 @@ instruction_t Cpu::setArgument(instruction_t instruction, bool_t which, argument
 bool_t Cpu::usesNextWord(argument_t argument)
 {
 	return (argument >= ARG_REG_NEXTWORD_INDEX_START && argument < ARG_REG_NEXTWORD_INDEX_END)
-		|| argument == ARG_NEXTWORD_INDEX
-		|| argument == ARG_NEXTWORD;
+		|| argument == ARG_NEXTWORD
+		|| argument == ARG_NEXTWORD_LITERAL;
 }
 
 // Is argument constant
 bool_t Cpu::isConst(argument_t argument)
 {
 	return (argument >= ARG_LITERAL_START && argument < ARG_LITERAL_END)
-		|| argument == ARG_NEXTWORD;
+		|| argument == ARG_NEXTWORD_LITERAL;
 }
 
 // How many words does instruction take
@@ -747,7 +496,8 @@ word_t Cpu::getInstructionLength(instruction_t instruction)
 	if (getOpcode(instruction) == OP_NONBASIC) {
 		// 1 argument
 		return 1 + usesNextWord(getArgument(instruction, 1));
-	} else {
+	}
+	else {
 		return 1 + usesNextWord(getArgument(instruction, 0)) + usesNextWord(getArgument(instruction, 1));
 	}
 }
@@ -758,7 +508,8 @@ word_t Cpu::getNextWordOffset(instruction_t instruction, bool_t which)
 	if (getOpcode(instruction) == OP_NONBASIC) {
 		// 1 argument, 1 extra word
 		return (which == 0) && usesNextWord(getArgument(instruction, 1));
-	} else {
+	}
+	else {
 		if (!usesNextWord(getArgument(instruction, which))) {
 			return 0;
 		}
@@ -791,7 +542,7 @@ void Cpu::setScreen(word_t row, word_t column, word_t character)
 
 void Cpu::setCursorPos(int x, int y)
 {
-	COORD pos  = {x, y};
+	COORD pos = { x, y };
 	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
 
 	SetConsoleTextAttribute(console, 7);
@@ -800,7 +551,7 @@ void Cpu::setCursorPos(int x, int y)
 
 void Cpu::clearScreen()
 {
-	COORD topLeft  = { 0, 0 };
+	COORD topLeft = { 0, 0 };
 	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_SCREEN_BUFFER_INFO screen;
 	DWORD written;

@@ -1,28 +1,12 @@
-; Set A and B to our numbers
-; You may change these and see
-; how the outcome will change
-SET A, 33
-SET B, 12
-
-; Compute A % 2, which is 0 if
-; even and 1 if odd
-MOD A, 2
-
-; Do the same to B
-MOD B, 2
-
-; Copy the value of A to C
-SET C, A
-
-; Since the sum of two numbers
-; is only odd if one number is
-; even and the other is odd,
-; we can use XOR here:
-; Get the exclusive or of C
-; (which is now the same as A)
-; and B
-XOR C, B
-
-; Finish
-:end
-SET PC, end
+  SET I, 0             ; Initialize the value of I to 0 before we run our loop
+:loop                  ; Label that marks the start of the loop
+  IFE I, 10            ; If I has reached 10, we want to exit the loop
+    SET PC, loop_end   ; so we jump to the label 'loop_end'
+  
+  ; we can do something in the loop here if we want to
+  
+  ADD I, 1             ; Make sure to increase the value of I, so that it
+                       ; will actually reach 10 sometime
+  SET PC, loop         ; Return to the label 'loop'
+:loop_end              ; Label that marks where the program will continue after the loop
+  SET PC, loop_end     ; Infinite loop to end the program

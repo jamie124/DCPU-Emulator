@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <map>
 #include <vector>
 
 const int MAX_CHARS = 1024;
@@ -86,5 +87,8 @@ public:
 	~Assembler(void);
 
 	int compile(const std::string& filename);
+
+private:
+	std::map<std::string, word_t> _foundLabels;
 };
 
