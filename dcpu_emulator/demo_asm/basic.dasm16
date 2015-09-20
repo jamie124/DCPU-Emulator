@@ -1,8 +1,28 @@
-SET A, 20
-SET B, 2
+; Set A and B to our numbers
+; You may change these and see
+; how the outcome will change
+SET A, 33
+SET B, 12
 
-SHL A, B       ; shift A left by B bits
-SHR A, B       ; shift A right by B bits
-AND A, B       ; "and" of A and B
-BOR A, B       ; "or" of A and B
-XOR A, B       ; "exclusive or" of A and B
+; Compute A % 2, which is 0 if
+; even and 1 if odd
+MOD A, 2
+
+; Do the same to B
+MOD B, 2
+
+; Copy the value of A to C
+SET C, A
+
+; Since the sum of two numbers
+; is only odd if one number is
+; even and the other is odd,
+; we can use XOR here:
+; Get the exclusive or of C
+; (which is now the same as A)
+; and B
+XOR C, B
+
+; Finish
+:end
+SET PC, end

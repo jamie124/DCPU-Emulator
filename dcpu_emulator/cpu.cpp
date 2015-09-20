@@ -11,8 +11,11 @@ Started 7-Apr-2012
 #include "StdAfx.h"
 #include "cpu.h"
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
-word_t* memory;
+
+
+//word_t* memory;
 word_t* registers;
 
 word_t programCounter;
@@ -27,7 +30,7 @@ word_t* literals;
 
 word_t* colourTable;
 
-Cpu::Cpu(void)
+Cpu::Cpu()
 {
 	DEBUG = false;
 	OPCODE_DEBUGGING = true;
@@ -38,11 +41,15 @@ Cpu::Cpu(void)
 		literals[i] = i;
 	}
 
+	/*
 	memory = new word_t[MEMORY_LIMIT];
 	// Init memory
 	for (int i = 0; i < MEMORY_LIMIT; i++) {
-		memory[i] = 0;
+		_memory[i] = 0;
 	}
+	*/
+	_memory.resize(MEMORY_LIMIT);
+
 
 	registers = new word_t[NUM_REGISTERS];
 	for (word_t i = 0; i < NUM_REGISTERS; i++) {
@@ -84,10 +91,10 @@ Cpu::Cpu(void)
 }
 
 
-Cpu::~Cpu(void)
+Cpu::~Cpu()
 {
 	delete literals;
-	delete memory;
+//	delete memory;
 	delete registers;
 	delete colourTable;
 }
@@ -96,17 +103,33 @@ int Cpu::run(std::string filename)
 {
 	clearScreen();
 
-	FILE * program = fopen(filename.c_str(), "r");
+//	FILE * program = fopen(filename.c_str(), "r");
 
-	if (!program) {
-		std::cout << "File could not be opened" << std::endl;
+//	if (!program) {
+	//	std::cout << "File could not be opened" << std::endl;
 
-		return -1;
-	}
+	//	return -1;
+//	}
 
 	//fread(memory, sizeof(word_t), MEMORY_LIMIT, program);
-	fread(memory, sizeof(word_t), MEMORY_LIMIT, program);
-	fclose(program);
+	//fread(memory, sizeof(word_t), MEMORY_LIMIT, program);
+//	fclose(program);
+
+	std::ifstream input(filename.c_str(), std::ios::binary);
+	
+	uint32_t index = 0;
+
+	if (input.is_open()) {
+		
+		while (!input.eof()) {
+	
+			input.read(reinterpret_cast<char*>(&_memory.at(index++)), sizeof word_t);
+
+		}
+
+	}
+
+	input.close();
 
 	bool videoDirty = false;
 
@@ -118,7 +141,7 @@ int Cpu::run(std::string filename)
 
 
 		word_t executingPC = programCounter;
-		instruction_t instruction = memory[programCounter++];
+		instruction_t instruction = _memory[programCounter++];
 
 		// Decode
 		opcode_t opcode = getOpcode(instruction);
@@ -155,7 +178,7 @@ int Cpu::run(std::string filename)
 			case OP_JSR:
 				// 0x01 JSR - pushes the address of next instruction onto stack.
 				// Sets PC to A
-				memory[--stackPointer] = programCounter;
+				_memory[--stackPointer] = programCounter;
 				programCounter = aLoc;
 				cycle += 2;
 				break;
@@ -251,17 +274,22 @@ int Cpu::run(std::string filename)
 
 		case OP_SHL:
 			// Shift A left B places, set O
-			resultWithCarry = (unsigned int) aLoc << bLoc;
-			result = (word_t) (resultWithCarry & 0xFFFF);
-			overflow = (word_t) (resultWithCarry >> 16);
+			overflow = ((aLoc << bLoc) >> 16) & 0xffff;
+			result = (aLoc << bLoc);
+		//	resultWithCarry = (unsigned int) aLoc << bLoc;
+		//	result = (word_t) (resultWithCarry & 0xFFFF);
+		//	overflow = (word_t) (resultWithCarry >> 16);
 			cycle += 2;
 			break;
 
 		case OP_SHR:
 			// Shift A right B places, set O
-			resultWithCarry = (unsigned int) aLoc >> bLoc;
-			result = (word_t) (resultWithCarry >> 16);
-			overflow = (word_t) (resultWithCarry & 0xFFFF);
+			overflow = ((aLoc << 16) >> bLoc) & 0xffff;
+			result = (aLoc >> bLoc);
+
+			//resultWithCarry = (unsigned int) aLoc >> bLoc;
+			//result = (word_t) (resultWithCarry >> 16);
+		//	overflow = (word_t) (resultWithCarry & 0xFFFF);
 			cycle += 2;
 			break;
 
@@ -326,7 +354,7 @@ int Cpu::run(std::string filename)
 			}
 
 			// Check if video needs to be updated
-			if (&aLoc >= &memory[CONSOLE_START] && &aLoc < &memory[CONSOLE_END]) {
+			if (&aLoc >= &_memory[CONSOLE_START] && &aLoc < &_memory[CONSOLE_END]) {
 				videoDirty = true;
 			}
 
@@ -335,7 +363,7 @@ int Cpu::run(std::string filename)
 
 		// Skip next instruction if needed
 		if (skipNext) {
-			programCounter += getInstructionLength(memory[programCounter]);
+			programCounter += getInstructionLength(_memory[programCounter]);
 		}
 
 		// TODO: Update video memory
@@ -344,7 +372,7 @@ int Cpu::run(std::string filename)
 			//clearScreen();
 			for (int i = 0; i < TERM_HEIGHT; i++) {
 				for (int j = 0; j < TERM_WIDTH; j +=1) {
-					word_t toPrint = memory[CONSOLE_START + i * TERM_WIDTH + j];
+					word_t toPrint = _memory[CONSOLE_START + i * TERM_WIDTH + j];
 
 					setScreen(i, j, toPrint);
 				}
@@ -389,7 +417,7 @@ word_t* Cpu::evaluateArgument(argument_t argument)
 			std::cout << "[register " << regNumber << "]" << std::endl;
 		}
 
-		return &memory[registers[regNumber]];
+		return &_memory[registers[regNumber]];
 	}
 
 	if (argument >= ARG_REG_NEXTWORD_INDEX_START && argument < ARG_REG_NEXTWORD_INDEX_END) {
@@ -397,12 +425,12 @@ word_t* Cpu::evaluateArgument(argument_t argument)
 		word_t regNumber = argument - ARG_REG_NEXTWORD_INDEX_START;
 
 		if (DEBUG) {
-			std::cout << "[" << memory[programCounter] << " + register " << regNumber + "]" << std::endl;
+			std::cout << "[" << _memory[programCounter] << " + register " << regNumber + "]" << std::endl;
 		}
 
 		cycle++;
 
-		return &memory[registers[regNumber] + memory[programCounter++]];
+		return &_memory[registers[regNumber] + _memory[programCounter++]];
 	}
 
 	if (argument >= ARG_LITERAL_START && argument < ARG_LITERAL_END) {
@@ -425,7 +453,7 @@ word_t* Cpu::evaluateArgument(argument_t argument)
 			std::cout << "POP" << std::endl;
 		}
 
-		return &memory[stackPointer++];
+		return &_memory[stackPointer++];
 		break;
 
 	case ARG_PEEK:
@@ -434,7 +462,7 @@ word_t* Cpu::evaluateArgument(argument_t argument)
 			std::cout << "PEEK" << std::endl;
 		}
 
-		return &memory[stackPointer];
+		return &_memory[stackPointer];
 		break;
 
 	case ARG_PUSH:
@@ -443,7 +471,7 @@ word_t* Cpu::evaluateArgument(argument_t argument)
 			std::cout << "PUSH" << std::endl;
 		}
 
-		return &memory[--stackPointer];
+		return &_memory[--stackPointer];
 		break;
 
 	case ARG_SP:
@@ -476,21 +504,21 @@ word_t* Cpu::evaluateArgument(argument_t argument)
 	case ARG_NEXTWORD_INDEX:
 		// Next word of ram
 		if (DEBUG) {
-			std::cout << "[" << memory[programCounter] << "]" << std::endl;
+			std::cout << "[" << _memory[programCounter] << "]" << std::endl;
 		}
 
 		cycle++;
-		return &memory[memory[programCounter++]];
+		return &_memory[_memory[programCounter++]];
 		break;
 
 	case ARG_NEXTWORD:
 		// Next word of ram - literal
 		if (DEBUG) {
-			std::cout << memory[programCounter] << std::endl;
+			std::cout << _memory[programCounter] << std::endl;
 		}
 
 		cycle++;
-		return &memory[programCounter++];
+		return &_memory[programCounter++];
 		break;
 
 	};
@@ -519,7 +547,7 @@ void Cpu::evaluateArgument(argument_t argument, word_t& argumentResult)
 			std::cout << "[register " << regNumber << "]" << std::endl;
 		}
 
-		argumentResult = memory[registers[regNumber]];
+		argumentResult = _memory[registers[regNumber]];
 
 		return;
 	}
@@ -529,12 +557,12 @@ void Cpu::evaluateArgument(argument_t argument, word_t& argumentResult)
 		word_t regNumber = argument - ARG_REG_NEXTWORD_INDEX_START;
 
 		if (DEBUG) {
-			std::cout << "[" << memory[programCounter] << " + register " << regNumber + "]" << std::endl;
+			std::cout << "[" << _memory[programCounter] << " + register " << regNumber + "]" << std::endl;
 		}
 
 		cycle++;
 
-		argumentResult = memory[registers[regNumber] + memory[programCounter++]];
+		argumentResult = _memory[registers[regNumber] + _memory[programCounter++]];
 
 		return;
 	}
@@ -561,7 +589,7 @@ void Cpu::evaluateArgument(argument_t argument, word_t& argumentResult)
 			std::cout << "POP" << std::endl;
 		}
 
-		argumentResult = memory[stackPointer++];
+		argumentResult = _memory[stackPointer++];
 
 		break;
 	case ARG_PEEK:
@@ -570,7 +598,7 @@ void Cpu::evaluateArgument(argument_t argument, word_t& argumentResult)
 			std::cout << "PEEK" << std::endl;
 		}
 
-		argumentResult = memory[stackPointer];
+		argumentResult = _memory[stackPointer];
 	
 		break;
 	case ARG_PUSH:
@@ -579,7 +607,7 @@ void Cpu::evaluateArgument(argument_t argument, word_t& argumentResult)
 			std::cout << "PUSH" << std::endl;
 		}
 
-		argumentResult = memory[--stackPointer];
+		argumentResult = _memory[--stackPointer];
 		break;
 
 	case ARG_SP:
@@ -612,21 +640,21 @@ void Cpu::evaluateArgument(argument_t argument, word_t& argumentResult)
 	case ARG_NEXTWORD_INDEX:
 		// Next word of ram
 		if (DEBUG) {
-			std::cout << "[" << memory[programCounter] << "]" << std::endl;
+			std::cout << "[" << _memory[programCounter] << "]" << std::endl;
 		}
 
 		cycle++;
-		argumentResult = memory[memory[programCounter++]];
+		argumentResult = _memory[_memory[programCounter++]];
 		break;
 
 	case ARG_NEXTWORD:
 		// Next word of ram - literal
 		if (DEBUG) {
-			std::cout << memory[programCounter] << std::endl;
+			std::cout << _memory[programCounter] << std::endl;
 		}
 
 		cycle++;
-		argumentResult = memory[programCounter++];
+		argumentResult = _memory[programCounter++];
 		break;
 
 	};

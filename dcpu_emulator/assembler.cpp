@@ -440,22 +440,21 @@ int Assembler::compile(const std::string& filename)
 		currentLine = replaceStr(currentLine, "\t", " ");
 		currentLine = trim(currentLine);
 
-		std::cout << currentLine;
 		//if (sourceFile.getline(lineBuffer, MAX_CHARS).eof()) {
 	//		finished = true;
 		//}
 
 
-		//char* temp = cleanString(lineBuffer);
-
 		// Check if whole line is a blank
-		if (currentLine == "") {
-			//if (strlen(label) > 0) {
-			if (label == "") {
-				processCommand("", "", address, label, head, tail, instruction);
+		if (currentLine != "") {
+
+			if (currentLine[0] == ';') {
+				// Skip comments
+				continue;
 			}
-		}
-		else {
+			
+				std::cout << currentLine;
+
 			// Non blank line, start processing
 
 			// Get label if applicable

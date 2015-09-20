@@ -10,7 +10,10 @@ Started 7-Apr-2012
 #pragma once
 
 #include <iostream>
+#include <vector>
+
 #include <Windows.h>
+
 
 typedef unsigned short word_t;
 typedef word_t instruction_t;
@@ -75,12 +78,29 @@ const int NUM_COLOURS = 16;
 
 class Cpu
 {
+
+public:
+	Cpu();
+	~Cpu();
+
+	int run(std::string filename);
+
+	static bool_t usesNextWord(argument_t argument);
+	static instruction_t setOpcode(instruction_t instruction, opcode_t opcode);
+	static instruction_t setArgument(instruction_t instruction, bool_t which, argument_t argument);
+
+	void setScreen(word_t row, word_t column, word_t character);
+	void setCursorPos(int x, int y);
+	void clearScreen();
+
 private:
 	bool DEBUG;
 	bool OPCODE_DEBUGGING;
 
 	bool STEP_MODE;
 	bool RUNNING;
+	
+	std::vector<word_t> _memory;
 
 	word_t* evaluateArgument(argument_t argument);
 
@@ -95,18 +115,6 @@ private:
 	bool_t isConst(argument_t argument);
 	word_t getInstructionLength(instruction_t instruction);
 	word_t getNextWordOffset(instruction_t instruction, bool_t which);
-public:
-	Cpu(void);
-	~Cpu(void);
 
-	int run(std::string filename);
-
-	static bool_t usesNextWord(argument_t argument);
-	static instruction_t setOpcode(instruction_t instruction, opcode_t opcode);
-	static instruction_t setArgument(instruction_t instruction, bool_t which, argument_t argument);
-
-	void setScreen(word_t row, word_t column, word_t character);
-	void setCursorPos(int x, int y);
-	void clearScreen();
 };
 
