@@ -1,12 +1,11 @@
-  SET I, 0             ; Initialize the value of I to 0 before we run our loop
-:loop                  ; Label that marks the start of the loop
-  IFE I, 10            ; If I has reached 10, we want to exit the loop
-    SET PC, loop_end   ; so we jump to the label 'loop_end'
+  SET A, 4             ; Our input
   
-  ; we can do something in the loop here if we want to
+  JSR square           ; Call the 'square' subroutine
+  SUB A, 1             ; Subtract 1
   
-  ADD I, 1             ; Make sure to increase the value of I, so that it
-                       ; will actually reach 10 sometime
-  SET PC, loop         ; Return to the label 'loop'
-:loop_end              ; Label that marks where the program will continue after the loop
-  SET PC, loop_end     ; Infinite loop to end the program
+:end
+  SET PC, end
+
+:square                ; Subroutine name
+  MUL A, A             ; Multiply A by itself (squaring)
+  SET PC, POP          ; Return

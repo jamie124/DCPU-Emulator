@@ -122,6 +122,7 @@ int Cpu::run(std::string filename)
 			nonbasicOpcode = (nonbasicOpcode_t)getArgument(instruction, 0);
 
 		//	evaluateArgument(getArgument(instruction, 1), aLoc);
+			bLoc = getValue(bArg, false);
 			skipStore = 1;
 		}
 		else {
@@ -143,9 +144,13 @@ int Cpu::run(std::string filename)
 			case OP_JSR:
 				// 0x01 JSR - pushes the address of next instruction onto stack.
 				// Sets PC to A
-				_memory[--stackPointer] = programCounter;
-				programCounter = aLoc;
-				cycle += 2;
+			//	_memory[--stackPointer] = programCounter;
+			//	programCounter = aLoc;
+				
+				stackPointer = (stackPointer - 1) & 0xffff;
+				_memory.at(stackPointer) = bLoc;
+				programCounter = _memory.at(stackPointer);
+				cycle += 3;
 				break;
 			default:
 				std::cout << "ERROR: Reserved OP_NONBASIC" << std::endl;

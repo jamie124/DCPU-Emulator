@@ -766,7 +766,7 @@ int Assembler::processLine(const std::string& currentLine, std::string& data, st
 		arg1 = trim(replace(splitStr[offset + 1], ',', ' '));
 
 
-		if (splitStr.size() > (offset + 1)) {
+		if (splitStr.size() > (offset + 1) && splitStr.at(offset + 2).find(";") == std::string::npos) {
 		
 			arg2 = trim(replaceStr(replaceStr(splitStr[offset + 2], ",", ""), "\t", ""));
 		}
