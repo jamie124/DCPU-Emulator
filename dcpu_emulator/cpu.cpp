@@ -148,8 +148,8 @@ int Cpu::run(std::string filename)
 			//	programCounter = aLoc;
 				
 				stackPointer = (stackPointer - 1) & 0xffff;
-				_memory.at(stackPointer) = bLoc;
-				programCounter = _memory.at(stackPointer);
+				_memory.at(stackPointer) = programCounter;
+				programCounter = bLoc;
 				cycle += 3;
 				break;
 			default:
@@ -273,7 +273,7 @@ int Cpu::run(std::string filename)
 
 		case OP_BOR:
 			// Binary OR of A and B
-			result = aLoc | bLoc;
+			result = bLoc | aLoc;
 			cycle += 1;
 			break;
 
@@ -335,13 +335,14 @@ int Cpu::run(std::string filename)
 		if (skipNext) {
 			programCounter += getInstructionLength(_memory[programCounter]);
 		}
-		else {
+
+		if (!skipStore) {
 			setValue(aArg, result);
 		}
 
 		// TODO: Update video memory
 
-		if (videoDirty) {
+	//	if (videoDirty) {
 			//clearScreen();
 			for (int i = 0; i < TERM_HEIGHT; i++) {
 				for (int j = 0; j < TERM_WIDTH; j += 1) {
@@ -351,8 +352,8 @@ int Cpu::run(std::string filename)
 				}
 			}
 
-			videoDirty = false;
-		}
+	//		videoDirty = false;
+	//	}
 
 
 		setCursorPos(1, TERM_HEIGHT + 1);
@@ -364,9 +365,12 @@ int Cpu::run(std::string filename)
 		printf("Instruction: 0x%04hx\n", instruction);
 
 		// Print part of stack
-		for (int i = 0xffff; i > (0xfff0); --i) {
+		for (int i = 0x8000; i < (0x800A); ++i) {
 			printf("0x%04hx,\t", _memory[i]);
 		}
+	//	for (int i = 0xffff; i > (0xfff0); --i) {
+	//		printf("0x%04hx,\t", _memory[i]);
+	//	}
 
 	}
 
@@ -379,6 +383,24 @@ word_t Cpu::getValue(argument_t argument, bool argA)
 	if (argument < ARG_REG_END) {
 		auto regNum = argument - ARG_REG_START;
 		return registers[regNum];
+
+	}
+	else if (argument < ARG_REG_INDEX_END) {
+		auto regNum = argument - ARG_REG_INDEX_START;
+		auto reg = registers[regNum];
+
+		return _memory[reg];
+	}
+	else if (argument < ARG_REG_NEXTWORD_INDEX_END) {
+		auto nextWord = _memory[programCounter];
+		programCounter = (programCounter + 1) & 0xffff;
+
+		cycle += 1;
+
+		auto regNum = argument - ARG_REG_INDEX_END;
+		auto reg = registers[regNum];
+
+		return _memory[(nextWord + reg) & 0xffff];
 
 	}
 	else if (argument == ARG_PUSH_POP) {
@@ -429,6 +451,19 @@ void Cpu::setValue(argument_t argument, word_t value)
 
 		registers[regNum] = value;
 
+	}
+	else if (argument < ARG_REG_INDEX_END) {
+		auto regNum = argument - ARG_REG_INDEX_START;
+		auto reg = registers[regNum];
+
+		_memory[reg] = value;
+	}
+	else if (argument < ARG_REG_NEXTWORD_INDEX_END) {
+		auto regNum = argument - ARG_REG_INDEX_END;
+		auto reg = registers[regNum];
+
+		auto nextWord = _memory[(programCounter - 1) & 0xffff];
+		_memory[(nextWord + reg) & 0xffff] = value;
 	}
 	else if (argument == ARG_PUSH_POP) {
 		_memory[stackPointer] = value;

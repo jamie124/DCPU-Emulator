@@ -14,6 +14,10 @@ typedef struct argumentStruct {
 	word_t nextWord;
 	std::string labelReference;		// If NULL, nextWord is valid, otherwise nextWord should point to this
 	bool badArgument;
+	bool argAlreadySet;
+
+	argumentStruct() :
+	argAlreadySet(false) {}
 } argumentStruct_t;
 
 typedef struct assembledInstruction {

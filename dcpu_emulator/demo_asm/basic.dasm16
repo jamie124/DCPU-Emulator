@@ -1,11 +1,17 @@
-  SET A, 4             ; Our input
-  
-  JSR square           ; Call the 'square' subroutine
-  SUB A, 1             ; Subtract 1
-  
-:end
-  SET PC, end
+set pc, main_loop
 
-:square                ; Subroutine name
-  MUL A, A             ; Multiply A by itself (squaring)
-  SET PC, POP          ; Return
+:main_loop set i, 0
+set a, 0x8000
+
+:print_string_loop
+bor [a], [hello+i]
+add a, 1
+add i, 1
+ifn i, 12
+set pc, print_string_loop
+
+:crash
+set pc, crash
+
+:hello 
+dat "Hello world", 0 

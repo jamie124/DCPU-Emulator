@@ -71,11 +71,11 @@ static const int OP_HWI = 0x12;
 // Reserved 0x13 - 0x1f
 
 static const word_t ARG_REG_START = 0;
-static const word_t ARG_REG_END = 8;
-static const word_t ARG_REG_INDEX_START = 8;
-static const word_t ARG_REG_INDEX_END = 16;
-static const word_t ARG_REG_NEXTWORD_INDEX_START = 16;
-static const word_t ARG_REG_NEXTWORD_INDEX_END = 24;
+static const word_t ARG_REG_END = 0x08;
+static const word_t ARG_REG_INDEX_START = 0x08;
+static const word_t ARG_REG_INDEX_END = 0x10;
+static const word_t ARG_REG_NEXTWORD_INDEX_START = 0x10;
+static const word_t ARG_REG_NEXTWORD_INDEX_END = 0x18;
 static const word_t ARG_PUSH_POP = 0x18;
 static const word_t ARG_PEEK = 25;
 //static const word_t ARG_PUSH = 26;

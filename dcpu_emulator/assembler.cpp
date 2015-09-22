@@ -244,7 +244,35 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 		else {
 			int labelEnd = arg.find("+");
 
+			
 			bool containsRegister = false;
+
+			if (labelEnd != std::string::npos) {
+				// Label + register
+				std::string label = arg.substr(1, labelEnd - 1);
+
+				toReturn.labelReference = label;
+
+				std::string regName = arg.substr(labelEnd + 1, arg.length() - 1);
+
+				int regNum = registerFor(regName[0]);
+				if (regNum != -1) {
+					toReturn.argument = ARG_REG_NEXTWORD_INDEX_START + regNum;
+					toReturn.argAlreadySet = true;
+				}
+				else {
+					std::cout << "ERROR: Invalid register name '" << regName << "' in: " << arg << " (" << labelEnd << ")" << std::endl;
+
+					toReturn.badArgument = true;
+				
+				}
+			}
+			else {
+				// Label
+				toReturn.labelReference = arg;
+			}
+
+			return toReturn;
 
 			/*
 			char* labelStart = arg + 1;
@@ -296,6 +324,12 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 					return toReturn;
 				}
 				*/
+			//	toReturn.argument = ARG_NEXTWORD_LITERAL;
+			//	return toReturn;
+			}
+			else {
+			//	toReturn.argument = ARG_NEXTWORD_LITERAL;
+			//	return toReturn;
 			}
 		}
 	}
@@ -531,14 +565,13 @@ int Assembler::compile(const std::string& filename)
 					// Match
 					std::cout << "Resolved " << instruction->b.labelReference << " to address " << other->address << std::endl;
 
-				//	if (other->address == 0xffff || other->address < 31) {
-				//		instruction->b.argument = 0x20 + (other->address == 0xffff ? 0x00 : 0x01 + other->address);
 
-				//	}
-				//	else {
+					if (!instruction->b.argAlreadySet) {
 						instruction->b.argument = ARG_NEXTWORD_LITERAL;
-						instruction->b.nextWord = other->address;
-					//}
+					
+					}
+					instruction->b.nextWord = other->address;
+
 					instruction->b.labelReference = "";
 					break;
 				}
@@ -878,8 +911,7 @@ int Assembler::processCommand(const std::string& command, std::string data, word
 					std::cout << "Reading hex literal" << std::endl;
 
 					if (!sscanf(data.c_str(), "0x%hx", &instruction->data[instruction->dataLength]) == 1) {
-						std::cout << "ERROR: Expected hex literal" << std::endl;
-						return -1;
+						std::cout << "ERROR: Expected hex literal" << std::endl;						return -1;
 					}
 
 					instruction->dataLength++;
