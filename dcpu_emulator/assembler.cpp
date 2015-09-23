@@ -35,21 +35,26 @@ opcode_t Assembler::opcodeFor(const std::string& command)
 		return OP_MUL;
 	}
 
+	if (command == "mli") {
+		return OP_MLI;
+	}
+
 	if (command == "div") {
 		return OP_DIV;
+	}
+
+	if (command == "dvi") {
+		return OP_DVI;
 	}
 
 	if (command == "mod") {
 		return OP_MOD;
 	}
 
-	if (command == "shl") {
-		return OP_SHL;
+	if (command == "mdi") {
+		return OP_MDI;
 	}
 
-	if (command == "shr") {
-		return OP_SHR;
-	}
 
 	if (command == "and") {
 		return OP_AND;
@@ -59,6 +64,19 @@ opcode_t Assembler::opcodeFor(const std::string& command)
 		return OP_BOR;
 	}
 
+	if (command == "shr") {
+		return OP_SHR;
+	}
+
+	if (command == "asr") {
+		return OP_ASR;
+	}
+
+	if (command == "shl") {
+		return OP_SHL;
+	}
+
+	
 	if (command == "xor") {
 		return OP_XOR;
 	}
@@ -146,7 +164,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 	}
 
 	// If it begins with 0-9 it's a number
-	if (arg[0] >= '0' && arg[0] <= '9') {
+	if ((arg[0] >= '0' && arg[0] <= '9') || arg[0] == '-') {
 		int argValue;
 		
 		/*
@@ -181,7 +199,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 		//	return toReturn;
 		//}
 
-		if (argValue == 0xffff || argValue <  ARG_LITERAL_START) {
+		if (argValue == 0xffff || (argValue > -1 && argValue <  ARG_LITERAL_START)) {
 			toReturn.argument = ARG_LITERAL_START + (argValue == 0xffff ? 0x00 : (0x01 + argValue));
 
 			return toReturn;

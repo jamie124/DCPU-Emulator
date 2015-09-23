@@ -11,6 +11,7 @@ Started 7-Apr-2012
 
 #include <iostream>
 #include <vector>
+#include <memory>
 
 #include <Windows.h>
 
@@ -121,27 +122,45 @@ public:
 	void clearScreen();
 
 private:
-	bool DEBUG;
-	bool OPCODE_DEBUGGING;
+	bool _debug;
+	bool _opcodeDebugging;
 
-	bool STEP_MODE;
-	bool RUNNING;
+
+	word_t _programCounter;
+	word_t _stackPointer;
+	word_t _overflow;
+
+	word_t _cycle;
 
 	std::vector<word_t> _memory;
+	std::vector<word_t> _registers;
 
-//	word_t* evaluateArgument(argument_t argument);
-
-//	void evaluateArgument(argument_t argument, word_t& argumentResult);
+	std::string _currentDebugMessage;
 
 	word_t getValue(argument_t argument, bool argA);
 	void setValue(argument_t argument, word_t value);
 
 	opcode_t getOpcode(instruction_t instruction);
-	argument_t getArgument(instruction_t instruction, boolean argB);
+	argument_t getArgument(instruction_t instruction, bool argB);
 
 	bool_t isConst(argument_t argument);
 	word_t getInstructionLength(instruction_t instruction);
 	word_t getNextWordOffset(instruction_t instruction, bool_t which);
+	word_t extendSign(word_t input);
 
+	word_t to16BitSigned(int input);
+	int to32BitSigned(word_t input);
+
+	void debugInstruction(const std::string& message, word_t first, word_t second);
+	void debugInstruction(const std::string& message, word_t first, word_t second, word_t result);
+	
 };
 
+template<typename ... Args>
+std::string string_format(const std::string& format, Args ... args) {
+	size_t size = snprintf(nullptr, 0, format.c_str(), args ...) + 1;
+
+	std::unique_ptr<char[]> buf(new char[size]);
+	snprintf(buf.get(), size, format.c_str(), args ...);
+	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+}
