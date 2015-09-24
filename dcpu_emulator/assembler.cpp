@@ -64,6 +64,10 @@ opcode_t Assembler::opcodeFor(const std::string& command)
 		return OP_BOR;
 	}
 
+	if (command == "xor") {
+		return OP_XOR;
+	}
+
 	if (command == "shr") {
 		return OP_SHR;
 	}
@@ -76,9 +80,12 @@ opcode_t Assembler::opcodeFor(const std::string& command)
 		return OP_SHL;
 	}
 
-	
-	if (command == "xor") {
-		return OP_XOR;
+	if (command == "ifb") {
+		return OP_IFB;
+	}
+
+	if (command == "ifc") {
+		return OP_IFC;
 	}
 
 	if (command == "ife") {
@@ -93,9 +100,18 @@ opcode_t Assembler::opcodeFor(const std::string& command)
 		return OP_IFG;
 	}
 
-	if (command == "ifb") {
-		return OP_IFB;
+	if (command == "ifa") {
+		return OP_IFA;
 	}
+
+	if (command == "ifl") {
+		return OP_IFL;
+	}
+
+	if (command == "ifu") {
+		return OP_IFU;
+	}
+
 
 	// Assume non-basic
 	return OP_NONBASIC;
@@ -149,7 +165,7 @@ int Assembler::registerFor(char regName)
 }
 
 // Get argument value for string
-argumentStruct_t Assembler::argumentFor(const std::string& arg)
+argumentStruct_t Assembler::argumentFor(const std::string& arg, bool isB)
 {
 	argumentStruct_t toReturn;
 
@@ -199,7 +215,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg)
 		//	return toReturn;
 		//}
 
-		if (argValue == 0xffff || (argValue > -1 && argValue <  ARG_LITERAL_START)) {
+		if (argValue == 0xffff || (argValue > -1 && argValue <  ARG_LITERAL_START && !isB) ) {
 			toReturn.argument = ARG_LITERAL_START + (argValue == 0xffff ? 0x00 : (0x01 + argValue));
 
 			return toReturn;
@@ -986,7 +1002,9 @@ void Assembler::processArg1(const std::string& command, const std::string& arg, 
 	// Determine opcode
 	instruction->opcode = opcodeFor(command);
 
-	instruction->a = argumentFor(arg);
+
+	// TODO: Change to b
+	instruction->a = argumentFor(arg, true);
 
 	// Advance address
 	address++;
@@ -1033,7 +1051,8 @@ void Assembler::processArg2(const std::string& command, const std::string& arg, 
 		}
 		*/
 
-		instruction->b = argumentFor(arg);
+		// TODO: Change to a
+		instruction->b = argumentFor(arg, false);
 
 		if (Cpu::usesNextWord(instruction->b.argument)) {
 			address++;

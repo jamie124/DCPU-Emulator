@@ -1,2 +1,15 @@
-SET A, -3
-ASR A, 3
+SET A, 15
+
+ifl 10, A
+	set PC, test
+
+:other
+	set b, 4
+	set PC, crash
+
+:test
+	set b, 2
+	set PC, crash
+
+:crash
+	sub PC, 1 

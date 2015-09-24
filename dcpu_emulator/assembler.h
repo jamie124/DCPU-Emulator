@@ -39,7 +39,7 @@ private:
 	opcode_t opcodeFor(const std::string& command);
 	nonbasicOpcode_t nonbasicOpcodeFor(const std::string& command);
 	int registerFor(char regName);
-	argumentStruct_t argumentFor(const std::string& arg);
+	argumentStruct_t argumentFor(const std::string& arg, bool isB);
 
 	char* cleanString(char *rawLine);
 

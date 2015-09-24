@@ -96,7 +96,7 @@ int Cpu::run(std::string filename)
 
 		// Execute
 		unsigned int resultWithCarry;		// Some opcodes use internal variable
-		bool skipNext = 0;				// Skip the next instruction
+		bool performNext = true;				// Perform the next instruction
 
 		switch (opcode) {
 		case OP_NONBASIC:
@@ -200,7 +200,6 @@ int Cpu::run(std::string filename)
 			if (_opcodeDebugging) {
 				debugInstruction("DIV %x by %x = %x", bLoc, aLoc, result);
 			}
-
 			break;
 		}
 		case OP_DVI: 
@@ -290,6 +289,10 @@ int Cpu::run(std::string filename)
 			result = (bLoc >> aLoc);
 
 			_cycle += 1;
+
+			if (_opcodeDebugging) {
+				debugInstruction("SHR %x >> %x = %x", bLoc, aLoc, result);
+			}
 			break;
 
 		case OP_ASR:
@@ -300,6 +303,10 @@ int Cpu::run(std::string filename)
 			result = (temp >> aLoc);
 
 			_cycle += 1;
+
+			if (_opcodeDebugging) {
+				debugInstruction("ASR %x >> %x = %x", bLoc, aLoc, result);
+			}
 			break;
 		}
 		case OP_SHL:
@@ -308,36 +315,111 @@ int Cpu::run(std::string filename)
 			result = (bLoc << aLoc);
 	
 			_cycle += 1;
-			break;
 
-		case OP_IFE:
-			// Skip next instruction if A != B
-			skipStore = 1;
-			skipNext = !!(bLoc != aLoc);
-			_cycle += (2 + skipNext);		// 2, +1 if skipped
-			break;
-
-		case OP_IFN:
-			// Skip next instruction if A == B
-			skipStore = 1;
-			skipNext = !!(bLoc == aLoc);
-			_cycle += (2 + skipNext);
-			break;
-
-		case OP_IFG:
-			// Skip next instruction if A <= B
-			skipStore = 1;
-			skipNext = !!(bLoc <= aLoc);
-			_cycle += (2 + skipNext);
+			if (_opcodeDebugging) {
+				debugInstruction("SHL %x << %x = %x", bLoc, aLoc, result);
+			}
 			break;
 
 		case OP_IFB:
-			// Skip next instruction if (A & B) == 0
+			// Perform next instruction if (B & A) != 0
 			skipStore = 1;
-			skipNext = (!(bLoc & aLoc));
-			_cycle += (2 + skipNext);
+			performNext = (bLoc & aLoc) != 0;
+
+			_cycle += (2 + !performNext);
+
+			if (_opcodeDebugging) {
+				debugInstruction("IFB %x & %x != 0 = %x", bLoc, aLoc, performNext);
+			}
 			break;
 
+		case OP_IFC:
+			// Perform next instruction if (B & A) == 0
+			skipStore = 1;
+			performNext = (bLoc & aLoc) == 0;
+
+			_cycle += (2 + !performNext);
+
+			if (_opcodeDebugging) {
+				debugInstruction("IFC %x & %x == 0 = %x", bLoc, aLoc, performNext);
+			}
+			break;
+
+		case OP_IFE:
+			// Perform next instruction if B == A
+			skipStore = 1;
+			performNext = (bLoc == aLoc);
+
+			_cycle += (2 + !performNext);		// 2, +1 if skipped
+
+			if (_opcodeDebugging) {
+				debugInstruction("IFE %x == %x = %x", bLoc, aLoc, performNext);
+			}
+
+			break;
+
+		case OP_IFN:
+			// Perform next instruction if B != A
+			skipStore = 1;
+			performNext = (bLoc != aLoc);
+
+			_cycle += (2 + !performNext);		// 2, +1 if skipped
+
+			if (_opcodeDebugging) {
+				debugInstruction("IFN %x != %x = %x", bLoc, aLoc, performNext);
+			}
+
+			break;
+
+		case OP_IFG:
+			// Perform next instruction if B > A
+			skipStore = 1;
+			performNext = (bLoc > aLoc);
+
+			_cycle += (2 + !performNext);		// 2, +1 if skipped
+
+			if (_opcodeDebugging) {
+				debugInstruction("IFG %x > %x = %x", bLoc, aLoc, performNext);
+			}
+			break;
+
+		case OP_IFA:
+			// Perform next instruction if B > A signed
+
+			skipStore = 1;
+			performNext = (to32BitSigned(bLoc) > to32BitSigned(aLoc));
+
+			_cycle += (2 + !performNext);		// 2, +1 if skipped
+
+			if (_opcodeDebugging) {
+				debugInstruction("IFA %x < %x = %x", bLoc, aLoc, performNext);
+			}
+			break;
+
+		case OP_IFL:
+			// Perform next instruction if B < A
+			skipStore = 1;
+			performNext = (bLoc < aLoc);
+
+			_cycle += (2 + !performNext);		// 2, +1 if skipped
+
+			if (_opcodeDebugging) {
+				debugInstruction("IFL %x < %x = %x", bLoc, aLoc, performNext);
+			}
+			break;
+
+		case OP_IFU:
+			// Perform next instruction if B < A signed
+
+			skipStore = 1;
+			performNext = (to32BitSigned(bLoc) < to32BitSigned(aLoc));
+
+			_cycle += (2 + !performNext);		// 2, +1 if skipped
+
+			if (_opcodeDebugging) {
+				debugInstruction("IFU %x < %x = %x", bLoc, aLoc, performNext);
+			}
+			break;
 		default:
 			debugInstruction("Unknown instruction %x", opcode, 0);
 			break;
@@ -363,7 +445,7 @@ int Cpu::run(std::string filename)
 		}
 
 		// Skip next instruction if needed
-		if (skipNext) {
+		if (!performNext) {
 			_programCounter += getInstructionLength(_memory[_programCounter]);
 		}
 
