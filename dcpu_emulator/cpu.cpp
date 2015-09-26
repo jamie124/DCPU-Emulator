@@ -88,8 +88,8 @@ int Cpu::run(std::string filename)
 			skipStore = 1;
 		}
 		else {
-			bLoc = getValue(bArg, false);
 			aLoc = getValue(aArg, true);
+			bLoc = getValue(bArg, false);
 			skipStore = isConst(getArgument(instruction, 0));		// If literal
 		}
 		word_t result = 0;
@@ -604,6 +604,13 @@ word_t Cpu::getValue(argument_t argument, bool argA)
 	else if (argument == ARG_O) {
 		return _overflow;
 	}
+	else if (argument == ARG_NEXTWORD) {
+		word_t nextWord = _memory.at(_programCounter);
+		_cycle += 1;
+
+		_programCounter = to16BitSigned(_programCounter + 1);
+		return _memory.at(nextWord);
+	}
 	else if (argument == ARG_NEXTWORD_LITERAL) {
 		word_t nextWord = _memory.at(_programCounter);
 		_cycle += 1;
@@ -642,6 +649,13 @@ void Cpu::setValue(argument_t argument, word_t value)
 	}
 	else if (argument == ARG_PC) {
 		_programCounter = value;
+	}
+	else if (argument == ARG_O) {
+		_overflow = value;
+	}
+	else if (argument == ARG_NEXTWORD) {
+		auto location = _memory.at(to16BitSigned(_programCounter - 1));
+		_memory.at(location) = value;
 	}
 
 

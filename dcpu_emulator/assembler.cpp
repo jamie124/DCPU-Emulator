@@ -133,9 +133,40 @@ opcode_t Assembler::opcodeFor(const std::string& command)
 // Get non-basic opcode from string
 nonbasicOpcode_t Assembler::nonbasicOpcodeFor(const std::string& command)
 {
-	//if (!strcmp(command, "jsr")) {
 	if (command == "jsr") {
 		return OP_JSR;
+	}
+
+	if (command == "int") {
+		return OP_INT;
+	}
+
+	if (command == "iag") {
+		return OP_IAG;
+	}
+
+	if (command == "ias") {
+		return OP_IAS;
+	}
+
+	if (command == "rfi") {
+		return OP_RFI;
+	}
+
+	if (command == "iaq") {
+		return OP_IAQ;
+	}
+
+	if (command == "hwn") {
+		return OP_HWN;
+	}
+
+	if (command == "hwq") {
+		return OP_HWQ;
+	}
+
+	if (command == "hwi") {
+		return OP_HWI;
 	}
 
 	// Instruction not found
@@ -297,95 +328,80 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg, bool isB)
 			}
 		}
 		else {
-			int labelEnd = arg.find("+");
+			std::string temp = arg;
 
+	
+			auto labelRef = false;
 
+			if (temp[0] == '[') {
+				labelRef = true;
+
+				temp = temp.substr(1, temp.length() - 2);
+			}
+
+			int labelEnd = temp.find("+");
 			bool containsRegister = false;
 
 			if (labelEnd != std::string::npos) {
 				// Label + register
-				std::string label = arg.substr(1, labelEnd - 1);
+				std::string label = trim(temp.substr(0, labelEnd));
 
-				toReturn.labelReference = label;
+				if (label.length() == 1) {
+					int regNum = registerFor(label[0]);
 
-				std::string regName = arg.substr(labelEnd + 1, arg.length() - 1);
-
-				int regNum = registerFor(regName[0]);
-				if (regNum != -1) {
 					toReturn.argument = ARG_REG_NEXTWORD_INDEX_START + regNum;
-					toReturn.argAlreadySet = true;
+
+					int argValue = 0;
+					std::stringstream ss;
+
+					temp = trim(temp.substr(labelEnd + 1));
+
+					if (temp.find("0x") != std::string::npos) {
+						ss << std::hex << temp;
+					}
+					else {
+						ss << std::dec << temp;
+					}
+
+					ss >> argValue;
+
+					toReturn.nextWord = argValue;
 				}
 				else {
-					std::cout << "ERROR: Invalid register name '" << regName << "' in: " << arg << " (" << labelEnd << ")" << std::endl;
+					toReturn.labelReference = label;
 
-					toReturn.badArgument = true;
+					std::string regName = trim(temp.substr(labelEnd + 1, temp.length() - 1));
 
+					int regNum = registerFor(regName[0]);
+					if (regNum != -1) {
+						toReturn.argument = ARG_REG_NEXTWORD_INDEX_START + regNum;
+						toReturn.argAlreadySet = true;
+					}
+					else {
+						std::cout << "ERROR: Invalid register name '" << regName << "' in: " << temp << " (" << labelEnd << ")" << std::endl;
+
+						toReturn.badArgument = true;
+
+					}
 				}
 			}
 			else {
-				// Label
-				toReturn.labelReference = arg;
+
+				if (labelRef) {
+					// Label reference
+					toReturn.labelReference = temp;
+					toReturn.argument = ARG_NEXTWORD;
+					toReturn.argAlreadySet = true;
+				}
+				else {
+					// Regular label
+					toReturn.labelReference = temp;
+				}
 			}
 
 			return toReturn;
 
-			/*
-			char* labelStart = arg + 1;
-
-			char* labelEnd = strchr(arg, '+');
-			if (labelEnd == NULL) {
-				labelEnd = strchr(arg, ']');
-			}
-
-			if (labelEnd == NULL) {
-				labelEnd = strchr(arg, ')');
-			}
-
-			if (labelEnd == NULL) {
-				std::cout << "ERROR: Unterminated label in argument: " << arg << std::endl;
-
-				toReturn.badArgument = true;
-				return toReturn;
-			}
-
-
-			// Store label
-			char* label = (char*)malloc((labelEnd - labelStart) + 1);
-			strncpy(label, labelStart, (labelEnd - labelStart));
-			label[labelEnd - labelStart] = '\0';
-
-			toReturn.labelReference = label;
-			*/
-
-			// Try to parse register
-			if (containsRegister) {
-				/*
-				char regName;
-				if (sscanf(labelEnd, "+%c", &regName) == 1) {
-					int regNum = registerFor(regName);
-					if (regNum != -1) {
-						toReturn.argument = ARG_REG_NEXTWORD_INDEX_START + regNum;
-						return toReturn;
-					}
-					else {
-						std::cout << "ERROR: Invalid register name '" << regName << "' in: " << arg << " (" << labelEnd << ")" << std::endl;
-
-						toReturn.badArgument = true;
-						return toReturn;
-					}
-				}
-				else {
-					toReturn.argument = ARG_NEXTWORD_INDEX;
-					return toReturn;
-				}
-				*/
-				//	toReturn.argument = ARG_NEXTWORD_LITERAL;
-				//	return toReturn;
-			}
-			else {
-				//	toReturn.argument = ARG_NEXTWORD_LITERAL;
-				//	return toReturn;
-			}
+		
 		}
 	}
 
@@ -533,7 +549,7 @@ int Assembler::compile(const std::string& filename)
 		// Check if whole line is a blank
 		if (currentLine != "" && currentLine[0] != ';') {
 
-			std::cout << currentLine << std::endl;
+		//	std::cout << currentLine << std::endl;
 
 			// Non blank line, start processing
 
@@ -543,7 +559,6 @@ int Assembler::compile(const std::string& filename)
 
 				_foundLabels[label] = address;
 
-				//		std::cout << "label: " << label << " " << std::endl;
 
 			}
 			else {
@@ -560,13 +575,34 @@ int Assembler::compile(const std::string& filename)
 				}
 
 				//	std::cout << "\tCommand: " << command << " Arg1: " << arg1 << " Arg2: " << arg2 << " Dat: " << data << std::endl;
-			}
 
-			if (command == "dat") {
-				instruction->source = command + " " + data;
-			}
-			else {
-				instruction->source = command + " " + arg1 + ", " + arg2;
+
+				if (command != "") {
+
+					instruction->source = command;
+
+					if (command == "dat") {
+						instruction->source  += " " + data;
+					}
+					else {
+						if (arg1 != "") {
+							instruction->source += " " + arg1;
+						}
+						else {
+							std::cout << "Expected B arg";
+							return false;
+						}
+
+						// TODO: Handle cases where arg2 is required.
+						if (arg2 != "") {
+							instruction->source =  ", " + arg2;
+						}
+				
+					}
+				}
+				else {
+					std::cout << "command missing";
+				}
 			}
 		}
 
@@ -814,22 +850,33 @@ std::string Assembler::toLower(const std::string& input)
 int Assembler::processLine(const std::string& currentLine, std::string& data, std::string& label, bool &functionOnNextLine,
 	std::string& command, std::string& arg1, std::string& arg2, bool containsLabel)
 {
+	std::string processedLine = currentLine;
 
-	std::vector<std::string> splitStr;
+	//std::vector<std::string> splitStr;
 
-	split(currentLine, splitStr, ' ');
+	//split(currentLine, splitStr, ' ');
 
-	splitStr.erase(std::remove(splitStr.begin(), splitStr.end(), " "), splitStr.end());
+	//splitStr.erase(std::remove(splitStr.begin(), splitStr.end(), " "), splitStr.end());
 
-	//int lineIndex = 0;						// Current position in line
-//	int itemIndex = 0;						// Current position in item being stored
+	size_t index;
 
-	if (containsLabel) {
+	if (processedLine[0] == ':') {
 		// Don't include ':' in label
 
-		label = trim(replace(splitStr[0], ',', ' '));
-		label = replaceStr(label, ":", "");
+		index = processedLine.find(" ");
 
+		label = trim(processedLine.substr(1, index));
+
+		if (index == std::string::npos) {
+			functionOnNextLine = true;
+			return 1;
+		} else {
+			processedLine = trim(processedLine.substr(index));
+		}
+		//label = trim(replace(splitStr[0], ',', ' '));
+		//label = replaceStr(label, ":", "");
+
+		/*
 		if (splitStr.size() == 1) {
 			functionOnNextLine = true;
 			return 1;
@@ -838,27 +885,36 @@ int Assembler::processLine(const std::string& currentLine, std::string& data, st
 			functionOnNextLine = true;
 			return 1;
 		}
+		*/
 
 	}
 
 
 	int offset = (containsLabel ? 1 : 0);
 
+	/*
 	if (splitStr.size() > 1) {
 		command = trim(splitStr[offset]);
 
 		command = toLower(command);
+
+		command = replaceStr(command, ",", "");
 	}
 	else {
 		command = "";
 	}
+	*/
 
+	command = toLower(processedLine.substr(0, 3));
+
+	processedLine = trim(processedLine.substr(processedLine.find(" ")));
 
 	// Check if remaining data belongs to 'dat' command.
 	//int i = strcmp(command, "dat");
 	//if (strcmp(command, "dat") == 0) {
 	if (command == "dat") {
 
+		/*
 		std::string temp = currentLine;
 
 		if (containsLabel) {
@@ -871,19 +927,39 @@ int Assembler::processLine(const std::string& currentLine, std::string& data, st
 		}
 
 		data = trim(replaceStr(temp, "dat", ""));
+		*/
 
+		if (processedLine.find(";") != std::string::npos) {
+			processedLine = processedLine.substr(0, processedLine.find(";"));
+		}
+
+		data = trim(processedLine);
 
 		std::cout << "";
 	}
 	else {
 
+		auto index = processedLine.find(",");
+
+		if (index != std::string::npos) {
+			arg1 = trim(processedLine.substr(0, index));
+			arg2 = trim(processedLine.substr(index + 1));
+
+		}
+		else {
+			arg1 = trim(processedLine);
+		}
+
+		/*
 		arg1 = trim(replace(splitStr[offset + 1], ',', ' '));
 
 
-		if (splitStr.size() > (offset + 1) && splitStr.at(offset + 2).find(";") == std::string::npos) {
-
-			arg2 = trim(replaceStr(replaceStr(splitStr[offset + 2], ",", ""), "\t", ""));
+		if (splitStr.size() > (offset + 2)) {
+			if (splitStr.at(offset + 2).find(";") == std::string::npos) {
+				arg2 = trim(replaceStr(replaceStr(splitStr[offset + 2], ",", ""), "\t", ""));
+			}
 		}
+		*/
 
 	}
 
@@ -917,7 +993,6 @@ int Assembler::processCommand(const std::string& command, std::string data, word
 
 	instruction->data = nullptr;
 
-	//if (!strcmp(command, "dat")) {
 	if (command == "dat") {
 		instruction->data = (word_t*)malloc(MAX_CHARS * sizeof(word_t));
 		instruction->dataLength = 0;
@@ -978,6 +1053,10 @@ int Assembler::processCommand(const std::string& command, std::string data, word
 				std::cout << std::endl;
 			}
 			else {
+				if (index >= data.length()) {
+					break;
+				}
+
 				int nextNextChar = data[index++];
 
 				if (nextNextChar == -1) {
