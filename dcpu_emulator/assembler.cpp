@@ -543,6 +543,12 @@ int Assembler::compile(const std::string& filename)
 		std::getline(sourceFile, currentLine);
 
 		currentLine = replaceStr(currentLine, "\t", " ");
+
+		if (currentLine.find(";") != std::string::npos) {
+			// Remove comment at end of string
+			currentLine = currentLine.substr(0, currentLine.find(";"));
+		}
+
 		currentLine = trim(currentLine);
 
 
@@ -595,7 +601,7 @@ int Assembler::compile(const std::string& filename)
 
 						// TODO: Handle cases where arg2 is required.
 						if (arg2 != "") {
-							instruction->source =  ", " + arg2;
+							instruction->source +=  ", " + arg2;
 						}
 				
 					}
