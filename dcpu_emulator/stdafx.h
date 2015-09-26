@@ -10,6 +10,16 @@
 #include <stdio.h>
 #include <tchar.h>
 
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <locale>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <vector>
 
+#include <Windows.h>
 
 // TODO: reference additional headers your program requires here

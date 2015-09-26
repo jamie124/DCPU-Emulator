@@ -420,6 +420,59 @@ int Cpu::run(std::string filename)
 				debugInstruction("IFU %x < %x = %x", bLoc, aLoc, performNext);
 			}
 			break;
+
+		case OP_ADX:
+		{
+			auto temp = bLoc + aLoc + _overflow;
+
+			_overflow = to16BitSigned(temp >> 16);
+
+			result = to16BitSigned(temp);
+
+			_cycle += 2;
+
+			if (_opcodeDebugging) {
+				debugInstruction("ADX %x, %x = %x", bLoc, aLoc, result);
+			}
+			break;
+		}
+		case OP_SBX:
+		{
+			auto temp = bLoc - aLoc + _overflow;
+
+			_overflow = to16BitSigned(temp >> 16);
+
+			result = to16BitSigned(temp);
+
+			_cycle += 2;
+
+			if (_opcodeDebugging) {
+				debugInstruction("SBX %x, %x = %x", bLoc, aLoc, result);
+			}
+			break;
+		}
+
+		case OP_STI:
+
+			result = aLoc;
+
+			// Increment I & J
+			_registers.at(6) += 1;
+			_registers.at(7) += 1;
+
+			_cycle += 2;
+			break;
+
+		case OP_STD:
+			
+			result = aLoc;
+
+			// Increment I & J
+			_registers.at(6) -= 1;
+			_registers.at(7) -= 1;
+
+			_cycle += 2;
+			break;
 		default:
 			debugInstruction("Unknown instruction %x", opcode, 0);
 			break;

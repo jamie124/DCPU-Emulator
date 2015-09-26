@@ -9,11 +9,7 @@ Started 7-Apr-2012
 */
 #pragma once
 
-#include <iostream>
-#include <vector>
-#include <memory>
-
-#include <Windows.h>
+#include "Utils.h"
 
 
 using word_t = unsigned short;
@@ -156,11 +152,3 @@ private:
 	
 };
 
-template<typename ... Args>
-std::string string_format(const std::string& format, Args ... args) {
-	size_t size = snprintf(nullptr, 0, format.c_str(), args ...) + 1;
-
-	std::unique_ptr<char[]> buf(new char[size]);
-	snprintf(buf.get(), size, format.c_str(), args ...);
-	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
-}

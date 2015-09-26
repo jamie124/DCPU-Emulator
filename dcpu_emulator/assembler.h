@@ -2,11 +2,6 @@
 
 #include "cpu.h"
 
-#include <algorithm>
-#include <memory>
-#include <map>
-#include <vector>
-
 const int MAX_CHARS = 1024;
 
 typedef struct argumentStruct {
@@ -21,6 +16,7 @@ typedef struct argumentStruct {
 } argumentStruct_t;
 
 typedef struct assembledInstruction {
+	std::string source;
 	std::string label;
 	word_t* data;
 	word_t dataLength;
@@ -29,6 +25,7 @@ typedef struct assembledInstruction {
 	argumentStruct_t a;
 	argumentStruct_t b;
 	std::shared_ptr<struct assembledInstruction> next;
+
 } assembledInstruction_t;
 
 using  AssembledInstructionPtr = std::shared_ptr<assembledInstruction_t>;

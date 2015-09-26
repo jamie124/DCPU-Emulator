@@ -1,15 +1,2 @@
-SET A, 15
-
-ifl 10, A
-	set PC, test
-
-:other
-	set b, 4
-	set PC, crash
-
-:test
-	set b, 2
-	set PC, crash
-
-:crash
-	sub PC, 1 
+SET [0x1000], 0x20       ; 7de1 1000 0020
+SUB A, [0x1000]          ; 7803 1000
