@@ -621,7 +621,7 @@ int Assembler::compile(const std::string& filename)
 	//	std::cout << std::endl;
 
 	for (AssembledInstructionPtr instruction = head; instruction != nullptr; instruction = instruction->next) {
-		std::cout << "Assembling for address " << instruction->address << std::endl;
+	//	std::cout << "Assembling for address " << instruction->address << std::endl;
 
 		if (instruction->data != nullptr) {
 			continue;
@@ -629,12 +629,12 @@ int Assembler::compile(const std::string& filename)
 
 		// Label reference for A
 		if (instruction->a.labelReference != "") {
-			std::cout << "Unresolved label for a: " << instruction->a.labelReference << std::endl;
+			//std::cout << "Unresolved label for a: " << instruction->a.labelReference << std::endl;
 
 			for (AssembledInstructionPtr other = head; other != nullptr; other = other->next) {
 				if (other->label != "" && (other->label == instruction->a.labelReference)) {
 					// Match
-					std::cout << "Resolved " << instruction->a.labelReference << " to address " << other->address << std::endl;
+				//	std::cout << "Resolved " << instruction->a.labelReference << " to address " << other->address << std::endl;
 					instruction->a.nextWord = other->address;
 					instruction->a.labelReference = "";
 					break;
@@ -644,12 +644,12 @@ int Assembler::compile(const std::string& filename)
 
 		// Label reference for B
 		if (instruction->b.labelReference != "") {
-			std::cout << "Unresolved label for b: " << instruction->b.labelReference << std::endl;
+		//	std::cout << "Unresolved label for b: " << instruction->b.labelReference << std::endl;
 
 			for (AssembledInstructionPtr other = head; other != nullptr; other = other->next) {
 				if (other->label != "" && (other->label == instruction->b.labelReference)) {
 					// Match
-					std::cout << "Resolved " << instruction->b.labelReference << " to address " << other->address << std::endl;
+				//	std::cout << "Resolved " << instruction->b.labelReference << " to address " << other->address << std::endl;
 
 
 					if (!instruction->b.argAlreadySet) {
@@ -704,7 +704,7 @@ int Assembler::compile(const std::string& filename)
 		//std::cout << address << ": Assembled instruction: " << packed << std::endl;
 		compiledFile.write(reinterpret_cast<const char*>(&packed), sizeof instruction_t);
 
-		std::string strFormat = "%-25s %-4x ";
+		std::string strFormat = "%-50s %-4x ";
 
 		bool includeA = false;
 		bool includeB = false;
@@ -734,17 +734,22 @@ int Assembler::compile(const std::string& filename)
 		}
 
 
+		std::string sourceLine;
 
 		if (!includeA && includeB) {
-			std::cout << string_format(strFormat, instruction->source.c_str(), packed, instruction->b.nextWord) << std::endl;
+			sourceLine = string_format(strFormat, instruction->source.c_str(), packed, instruction->b.nextWord);
 		}
 		else if (includeA && !includeB) {
-			std::cout << string_format(strFormat, instruction->source.c_str(), packed, instruction->a.nextWord) << std::endl;
+			sourceLine = string_format(strFormat, instruction->source.c_str(), packed, instruction->a.nextWord);
 		}
 
 		else {
-			std::cout << string_format(strFormat, instruction->source.c_str(), packed, instruction->b.nextWord, instruction->a.nextWord) << std::endl;
+			sourceLine = string_format(strFormat, instruction->source.c_str(), packed, instruction->b.nextWord, instruction->a.nextWord);
 		}
+
+		std::cout << sourceLine << std::endl;
+
+		_lineMappings.insert(std::pair<word_t, std::string>(instruction->address, sourceLine));
 
 
 	}
@@ -1153,4 +1158,9 @@ void Assembler::processArg2(const std::string& command, const std::string& arg, 
 			address++;
 		}
 	}
+}
+
+std::map<word_t, std::string> Assembler::getLineMappings() const
+{
+	return _lineMappings;
 }

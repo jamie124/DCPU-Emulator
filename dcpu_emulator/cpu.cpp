@@ -10,11 +10,8 @@ Started 7-Apr-2012
 
 #include "StdAfx.h"
 #include "cpu.h"
-#include <iostream>
-#include <fstream>
-#include <stdio.h>
 
-word_t keyboardPosition;
+#include "LEM1820.h"
 
 Cpu::Cpu() :
 	_programCounter(0),
@@ -32,13 +29,17 @@ Cpu::Cpu() :
 	for (word_t i = 0; i < NUM_REGISTERS; i++) {
 		_registers.at(i) = 0;
 	}
+
+	std::unique_ptr<LEM1820> lemMonitor = std::make_unique<LEM1820>(); 
+	lemMonitor->init();
+	_devices.push_back(std::move(lemMonitor));
 }
 
 Cpu::~Cpu()
 {
 }
 
-int Cpu::run(std::string filename)
+int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMappings)
 {
 	clearScreen();
 
@@ -106,14 +107,42 @@ int Cpu::run(std::string filename)
 			case OP_JSR:
 				// 0x01 JSR - pushes the address of next instruction onto stack.
 				// Sets PC to A
-			//	_memory[--stackPointer] = programCounter;
-			//	programCounter = aLoc;
-				
 				_stackPointer = (_stackPointer - 1) & 0xffff;
 				_memory.at(_stackPointer) = _programCounter;
 				_programCounter = aLoc;
 				_cycle += 3;
 				break;
+
+			case OP_INT:
+				break;
+
+			case OP_HWN:
+				result = _devices.size();
+				_cycle += 2;
+
+				break;
+
+			case OP_HWQ:
+			{
+				auto& currentDevice = _devices.at(0);
+
+				auto identifer = currentDevice->getIdentifier();
+				auto manufaturer = currentDevice->getManufacturer();
+				auto version = currentDevice->getVersion();
+
+				// A  & B
+				_registers.at(0) = identifer & 0xffff;
+				_registers.at(1) = (identifer >> 16) & 0xffff;
+				// C
+				_registers.at(2) = version & 0xffff;
+				// X & Y
+				_registers.at(3) = manufaturer & 0xffff;
+				_registers.at(4) = (manufaturer >> 16) & 0xffff;
+
+				_cycle += 4;
+			}
+				break;
+
 			default:
 				std::cout << "ERROR: Reserved OP_NONBASIC" << std::endl;
 				return -2;
@@ -537,7 +566,9 @@ int Cpu::run(std::string filename)
 			_registers.at(7));
 		printf("PC: 0x%04hx\tSP: 0x%04hx\tEX:  0x%04hx\n", _programCounter, _stackPointer, _overflow);
 		printf("Instruction: 0x%04hx\n", instruction);
+
 		std::cout << _currentDebugMessage.c_str() << std::endl;
+		std::cout << lineMappings.at(executingPC) << std::endl;
 
 		// Print part of stack
 		for (int i = 0xffff; i > (0xfff0); --i) {

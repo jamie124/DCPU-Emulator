@@ -1,5 +1,14 @@
 #pragma once
 
+using word_t = unsigned short;
+using instruction_t = word_t;
+
+using argument_t = unsigned char;
+using opcode_t = unsigned char;
+using nonbasicOpcode_t = argument_t;
+
+using bool_t = unsigned char;
+
 template<typename ... Args>
 std::string string_format(const std::string& format, Args ... args) {
 	size_t size = snprintf(nullptr, 0, format.c_str(), args ...) + 1;

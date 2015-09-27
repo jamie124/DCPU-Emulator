@@ -89,7 +89,10 @@ public:
 
 	int compile(const std::string& filename);
 
+	std::map<word_t, std::string> getLineMappings() const;
+
 private:
 	std::map<std::string, word_t> _foundLabels;
+	std::map<word_t, std::string> _lineMappings;
 };
 

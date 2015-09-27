@@ -9,17 +9,9 @@ Started 7-Apr-2012
 */
 #pragma once
 
+#include "Device.h"
+
 #include "Utils.h"
-
-
-using word_t = unsigned short;
-using instruction_t = word_t;
-
-using argument_t = unsigned char;
-using opcode_t = unsigned char;
-using nonbasicOpcode_t = argument_t;
-
-using bool_t = unsigned char;
 
 static const int OP_NONBASIC = 0x0;
 static const int OP_SET = 0x01;
@@ -107,7 +99,7 @@ public:
 	Cpu();
 	~Cpu();
 
-	int run(std::string filename);
+	int run(const std::string& filename, std::map<word_t, std::string> lineMappings);
 
 	static bool_t usesNextWord(argument_t argument);
 	static instruction_t setOpcode(instruction_t instruction, opcode_t opcode);
@@ -132,6 +124,8 @@ private:
 	std::vector<word_t> _registers;
 
 	std::string _currentDebugMessage;
+
+	std::vector<std::unique_ptr<Device>> _devices;
 
 	word_t getValue(argument_t argument, bool argA);
 	void setValue(argument_t argument, word_t value);
