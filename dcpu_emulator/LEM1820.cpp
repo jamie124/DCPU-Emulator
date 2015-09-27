@@ -21,3 +21,35 @@ bool LEM1820::init()
 
 	return true;
 }
+
+void LEM1820::interrupt()
+{
+	 auto aVal = _cpu->getRegister(0);
+	 auto bVal = _cpu->getRegister(1);
+
+	 switch (aVal) {
+	 case 0:
+		 if (bVal == 0) {
+			 std::cout << "Screen disconnected";
+		 }
+		 else {
+			 _memOffset = bVal;
+		 }
+		 break;
+	 case 1:
+		 // TODO - Map font
+		 break;
+	 case 2:
+		 // TODO: Map palette
+		 break;
+	 case 3:
+		 // TODO: Border colour
+		 break;
+	 case 4:
+		 // TODO: Mem dump font
+		 break;
+	 case 5:
+		 // TODO: Dump palette
+		 break;
+	 }
+}

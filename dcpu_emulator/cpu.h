@@ -9,7 +9,7 @@ Started 7-Apr-2012
 */
 #pragma once
 
-#include "Device.h"
+//#include "Device.h"
 
 #include "Utils.h"
 
@@ -92,6 +92,8 @@ const int FRAMESKIP = 10;
 
 const int NUM_COLOURS = 16;
 
+class Device;
+
 class Cpu
 {
 
@@ -108,6 +110,8 @@ public:
 	void setScreen(word_t row, word_t column, word_t character);
 	void setCursorPos(int x, int y);
 	void clearScreen();
+
+	word_t getRegister(word_t reg) const;
 
 private:
 	bool _debug;

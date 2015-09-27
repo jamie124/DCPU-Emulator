@@ -32,6 +32,8 @@ Cpu::Cpu() :
 
 	std::unique_ptr<LEM1820> lemMonitor = std::make_unique<LEM1820>(); 
 	lemMonitor->init();
+	lemMonitor->setCpu(this);
+
 	_devices.push_back(std::move(lemMonitor));
 }
 
@@ -64,7 +66,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 	while (1) {
 
-	//	std::cin.get();
+		std::cin.get();
 
 
 		word_t executingPC = _programCounter;
@@ -142,6 +144,18 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 					_registers.at(3) = manufaturer & 0xffff;
 					_registers.at(4) = (manufaturer >> 16) & 0xffff;
 				}
+				_cycle += 4;
+			}
+				break;
+
+			case OP_HWI:
+			{
+				auto& currentDevice = _devices.at(aLoc);
+
+				if (currentDevice) {
+					currentDevice->interrupt();
+				}
+
 				_cycle += 4;
 			}
 				break;
@@ -870,4 +884,9 @@ void Cpu::clearScreen()
 		screen.dwSize.X * screen.dwSize.Y, topLeft, &written
 		);
 	SetConsoleCursorPosition(console, topLeft);
+}
+
+word_t Cpu::getRegister(word_t reg) const
+{
+	return _registers.at(reg);
 }

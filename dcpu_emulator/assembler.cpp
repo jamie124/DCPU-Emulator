@@ -433,7 +433,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg, bool isB)
 		return toReturn;
 	}
 
-	if (reserved == "ex") {
+	if (reserved == "") {
 		toReturn.argument = ARG_O;
 		return toReturn;
 	}
@@ -451,7 +451,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg, bool isB)
 
 	if (label != _foundLabels.end()) {
 		auto labelPos = label->second;
-		if (labelPos == 0xffff || labelPos < 31) {
+		if ((labelPos == 0xffff || labelPos < 31) && isB) {
 			toReturn.argument = 0x20 + (labelPos == 0xffff ? 0x00 : (0x01 + labelPos));
 		}
 		else {

@@ -9,5 +9,10 @@ public:
 	virtual ~LEM1820();
 
 	bool init() override;
+	void interrupt() override;
+
+private:
+	word_t _memOffset;
+
 };
 
