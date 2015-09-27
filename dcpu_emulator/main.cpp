@@ -20,7 +20,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		std::unique_ptr<Cpu> cpu = std::make_unique<Cpu>();
 
-	//	cpu->run("demo_asm\\basic.bin", assembler->getLineMappings());
+		cpu->run("demo_asm\\basic.bin", assembler->getLineMappings());
 	}
 	
 	std::cin >> pause;

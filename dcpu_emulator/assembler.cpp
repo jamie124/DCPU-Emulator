@@ -330,7 +330,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg, bool isB)
 		else {
 			std::string temp = arg;
 
-	
+
 			auto labelRef = false;
 
 			if (temp[0] == '[') {
@@ -401,7 +401,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg, bool isB)
 
 			return toReturn;
 
-		
+
 		}
 	}
 
@@ -433,7 +433,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg, bool isB)
 		return toReturn;
 	}
 
-	if (reserved == "o") {
+	if (reserved == "ex") {
 		toReturn.argument = ARG_O;
 		return toReturn;
 	}
@@ -555,11 +555,11 @@ int Assembler::compile(const std::string& filename)
 		// Check if whole line is a blank
 		if (currentLine != "" && currentLine[0] != ';') {
 
-		//	std::cout << currentLine << std::endl;
+			//	std::cout << currentLine << std::endl;
 
-			// Non blank line, start processing
+				// Non blank line, start processing
 
-			// Get label if applicable
+				// Get label if applicable
 			if (currentLine[0] == ':') {
 				processLine(currentLine, data, label, skipTillNextLine, command, arg1, arg2, true);
 
@@ -588,7 +588,7 @@ int Assembler::compile(const std::string& filename)
 					instruction->source = command;
 
 					if (command == "dat") {
-						instruction->source  += " " + data;
+						instruction->source += " " + data;
 					}
 					else {
 						if (arg1 != "") {
@@ -601,9 +601,9 @@ int Assembler::compile(const std::string& filename)
 
 						// TODO: Handle cases where arg2 is required.
 						if (arg2 != "") {
-							instruction->source +=  ", " + arg2;
+							instruction->source += ", " + arg2;
 						}
-				
+
 					}
 				}
 				else {
@@ -621,9 +621,9 @@ int Assembler::compile(const std::string& filename)
 	//	std::cout << std::endl;
 
 	for (AssembledInstructionPtr instruction = head; instruction != nullptr; instruction = instruction->next) {
-	//	std::cout << "Assembling for address " << instruction->address << std::endl;
+		//	std::cout << "Assembling for address " << instruction->address << std::endl;
 
-		if (instruction->data != nullptr) {
+		if (instruction->data.size() > 0) {
 			continue;
 		}
 
@@ -644,7 +644,7 @@ int Assembler::compile(const std::string& filename)
 
 		// Label reference for B
 		if (instruction->b.labelReference != "") {
-		//	std::cout << "Unresolved label for b: " << instruction->b.labelReference << std::endl;
+			//	std::cout << "Unresolved label for b: " << instruction->b.labelReference << std::endl;
 
 			for (AssembledInstructionPtr other = head; other != nullptr; other = other->next) {
 				if (other->label != "" && (other->label == instruction->b.labelReference)) {
@@ -684,9 +684,9 @@ int Assembler::compile(const std::string& filename)
 
 
 
-		if (instruction->data != nullptr) {
+		if (instruction->data.size() > 0) {
 			//std::cout << "DATA: " << instruction->dataLength << " words" << std::endl;
-			for (int i = 0; i < instruction->dataLength; ++i) {
+			for (int i = 0; i < instruction->data.size(); ++i) {
 				compiledFile.write(reinterpret_cast<const char*>(&instruction->data[i]), sizeof word_t);
 			}
 
@@ -881,7 +881,8 @@ int Assembler::processLine(const std::string& currentLine, std::string& data, st
 		if (index == std::string::npos) {
 			functionOnNextLine = true;
 			return 1;
-		} else {
+		}
+		else {
 			processedLine = trim(processedLine.substr(index));
 		}
 		//label = trim(replace(splitStr[0], ',', ' '));
@@ -1002,107 +1003,148 @@ int Assembler::processCommand(const std::string& command, std::string data, word
 	instruction->address = address;
 	instruction->label = label;
 
-	instruction->data = nullptr;
+	//instruction->data = nullptr;
 
 	if (command == "dat") {
-		instruction->data = (word_t*)malloc(MAX_CHARS * sizeof(word_t));
-		instruction->dataLength = 0;
+		//	instruction->data = (word_t*)malloc(MAX_CHARS * sizeof(word_t));
 
-		while (1) {
+			/*
+			while (1) {
 
-			int nextChar = data[index++];
-			if (nextChar == '"') {
-				//std::cout << "Reading string." << std::endl;
+				int nextChar = data[index++];
+				if (nextChar == '"') {
+					//std::cout << "Reading string." << std::endl;
 
-				bool_t escaped = 0;
-				while (1) {
-					nextChar = data[index++];
-					char toPut;
+					bool_t escaped = 0;
+					while (1) {
+						nextChar = data[index++];
+						char toPut;
 
-					if (escaped) {
-						// Escape translation
-						switch (nextChar) {
-						case 'n':
-							toPut = '\n';
+						if (escaped) {
+							// Escape translation
+							switch (nextChar) {
+							case 'n':
+								toPut = '\n';
+								break;
+
+							case 't':
+								toPut = '\t';
+								break;
+
+							case '\\':
+								toPut = '\\';
+								break;
+
+							case '"':
+								toPut = '"';
+								break;
+
+							default:
+								std::cout << "ERROR: Unrecognized escape sequence " << nextChar << std::endl;
+								return -1;
+							}
+
+							escaped = 0;
+						}
+						else if (nextChar == '"' || nextChar == '\0') {
 							break;
-
-						case 't':
-							toPut = '\t';
-							break;
-
-						case '\\':
-							toPut = '\\';
-							break;
-
-						case '"':
-							toPut = '"';
-							break;
-
-						default:
-							std::cout << "ERROR: Unrecognized escape sequence " << nextChar << std::endl;
-							return -1;
+						}
+						else if (nextChar == '\\') {
+							escaped = 1;
+							continue;
+						}
+						else {
+							// Normal character
+							toPut = nextChar;
 						}
 
-						escaped = 0;
-					}
-					else if (nextChar == '"' || nextChar == '\0') {
-						break;
-					}
-					else if (nextChar == '\\') {
-						escaped = 1;
-						continue;
-					}
-					else {
-						// Normal character
-						toPut = nextChar;
+						instruction->data.push_back(toPut);
+
+					//	instruction->data[instruction->dataLength++] = toPut;
+						std::cout << toPut;
 					}
 
-					instruction->data[instruction->dataLength++] = toPut;
-					std::cout << toPut;
-				}
-
-				std::cout << std::endl;
-			}
-			else {
-				if (index >= data.length()) {
-					break;
-				}
-
-				int nextNextChar = data[index++];
-
-				if (nextNextChar == -1) {
-					break;
-				}
-
-				if (nextChar == '0' && nextNextChar == 'x') {
-					// Revert back 2 chars.
-					data[index - 2];
-
-					// Hex literal
-					std::cout << "Reading hex literal" << std::endl;
-
-					if (!sscanf(data.c_str(), "0x%hx", &instruction->data[instruction->dataLength]) == 1) {
-						std::cout << "ERROR: Expected hex literal" << std::endl;						return -1;
-					}
-
-					instruction->dataLength++;
-				}
-				else if (sscanf(data.c_str(), "%hu", &instruction->data[instruction->dataLength]) == 1) {
-					// Decimal literal
-					std::cout << "Reading decimal literal" << std::endl;
-					instruction->dataLength++;
+					std::cout << std::endl;
 				}
 				else {
-					// Not a real literal
-					std::cout << "Out of literals" << std::endl;
-					break;
+					if (index >= data.length()) {
+						break;
+					}
+
+					int nextNextChar = data[index++];
+
+					if (nextNextChar == -1) {
+						break;
+					}
+
+					if (nextChar == '0' && nextNextChar == 'x') {
+						// Revert back 2 chars.
+						data[index - 2];
+
+						// Hex literal
+						std::cout << "Reading hex literal" << std::endl;
+
+						//if (!sscanf(data.c_str(), "0x%hx", &instruction->data[instruction->data.size()]) == 1) {
+						//	std::cout << "ERROR: Expected hex literal" << std::endl;						return -1;
+						//}
+
+					//	instruction->dataLength++;
+					}
+					//else if (sscanf(data.c_str(), "%hu", &instruction->data[instruction->data.size()]) == 1) {
+						// Decimal literal
+					//	std::cout << "Reading decimal literal" << std::endl;
+					//	instruction->dataLength++;
+					//}
+					else {
+						// Not a real literal
+						std::cout << "Out of literals" << std::endl;
+						break;
+					}
+
 				}
 
 			}
+			*/
 
+		std::vector<std::string> splitDat;
+
+		split(data, splitDat, ',');
+
+		for (auto& dat : splitDat) {
+			auto temp = trim(dat);
+			
+			temp = replaceStr(temp, ",", "");
+			
+			if (temp.find("\"") != std::string::npos) {
+				// Parse string
+				temp = replaceStr(temp, "\"", "");
+
+				for (auto& ch : temp) {
+
+					instruction->data.push_back(ch);
+				}
+			}
+			else {
+				int datValue;
+
+				std::stringstream ss;
+
+				if (temp.find("0x") != std::string::npos) {
+					ss << std::hex << temp;
+				}
+				else {
+					ss << std::dec << temp;
+				}
+
+				ss >> datValue;
+
+				instruction->data.push_back(datValue);
+			}
+
+			
 		}
 
-		address += instruction->dataLength;
+		address += instruction->data.size();
 	}
 
 	return 1;

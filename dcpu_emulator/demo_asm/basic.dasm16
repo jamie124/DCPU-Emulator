@@ -1,5 +1,304 @@
-SET a, [top_line]
-SET b, [second_line]
-
-:top_line DAT           "===== DCPU-16 Diagnostics ======", 0
-:second_line DAT        " Discovered hardware:           ", 0
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;___________________________________________________;;
+;;|;;;;;;;;;;;;;;;;;;;;;_SNAKE_;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;_DCPU_SNAKE_;;;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;_Ver._1.0_;;;;;;;;;_S0lll0s_;;;;;;;;;_07/04/12_;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;_arrows_left_'n'_right_to_play_;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;SMOARENA@GMX.de;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;________looks_________________________like_________;;
+;;____PPP____O____L______A____RRR____O____I___DDD____;;
+;;____PPP___O_O___L_____A_A___RRR___O_O___I___D__D___;;
+;;____P______O____LLL__A___A__R_R____O____I___DDD____;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+:_start     JSR hwenum        ; Save return address
+            SET A, 0
+            SET B, 90
+            HWI [clock_id]
+:coppyloop
+            SET B, 0x0f00
+            BOR B, [menumessage+I]
+            STI [0x80c4+J], b
+            IFN I, 22
+                SET PC, coppyloop
+:menuloop   SET A, 1
+            HWI [keyboard_id] ; Store next key in C
+            IFN C, 0x11
+                SET PC, menuloop
+            SET J, 0
+            SET I, 0
+:copppyloop
+            STI [0x80c4+J], 0x0
+            IFN I, 22
+                SET PC, copppyloop
+            ; Fill Borders
+            SET X, 0x1f
+            SET Y, 0x1f
+:fillxloop  SET [0x8000+X], 0xf01b
+            SUB X, 1
+            SUB Y, 1
+            IFN Y, 0xffff
+                SET PC, fillxloop
+            SET X, 0x17f
+            SET Y, 0x01f
+            IFN [0x817f], 0xf01b
+                SET PC, fillxloop
+            SET X, 0x17f
+:fillyloop  SET [0x8000+X], 0xf01b
+            SUB X, 0x1f
+            SET [0x8000+X], 0xf01b
+            SUB X, 1
+            IFN X, 0x1f
+                SET PC, fillyloop
+            SET X, 8
+            SET Y, 7
+:gameloop
+            SET A, 2
+            SET B, 0x82
+            HWI [keyboard_id]
+            IFE C, 1
+               SET PC, turn_left
+            SET B, 0x83
+            HWI [keyboard_id]               ;;;;;;;;;;;;;;;;;41;;;;;;;;;;;;
+            IFE C, 1
+                SET PC, turn_right
+            SET B, 0x10
+            HWI [keyboard_id]
+            IFE C, 1 ; Backspace
+                SET PC, menuloop
+:afterkey            
+            SET A, 1
+            HWI [clock_id]
+            IFL C, 1
+                SET PC, gameloop
+            SET [keypress], 0
+            IFE [foodleft], 0
+                JSR createfood
+            SET A, 0
+            SET B, 10
+            HWI [clock_id] ; Reset Clock
+            JSR calc_nextpos
+            JSR check_death
+            JSR draw
+            SET PC, gameloop
+:calc_nextpos
+            IFE [direction], 0
+                SUB X, 1
+            IFE [direction], 1
+                SUB Y, 1
+            IFE [direction], 2
+                ADD X, 1
+            IFE [direction], 3
+                ADD Y, 1
+            SET PC, POP
+:check_death
+            IFE X, 0
+                SET PC, die
+            IFE X, 0x1f
+                SET PC, die
+            IFE Y, 0
+                SET PC, die
+            IFE Y, 0xb
+                SET PC, die
+            SET A, Y
+            MUL A, 0x20
+            ADD A, X
+            IFN [0x7000+A], 0
+                IFN [0x7000+A], 0xffff
+                SET PC, die
+            SET PC, POP
+:die
+            SET X, POP
+            SET I, 0
+            SET J, 0
+:copyloop
+            SET B, 0xfc00
+            BOR B, [deathmessage+I]
+            STI [0x80cd+J], b
+            IFN I, 9
+                SET PC, copyloop
+:deadloop   SET A, 1
+            HWI [keyboard_id] ; Store next key in C
+            IFN C, 0x11
+                SET PC, deadloop
+            SET PC, end
+:draw
+            SET A, 0
+:drawloop   IFN [0x7000+A], 0         ; Increase lengths
+                IFN [0x7000+A], 0xffff
+                    ADD [0x7000+A], 1
+            IFE [0x7000+A], [length]
+                SET [0x8000+A], 0     ; Erase end of snake
+            IFE [0x7000+A], [length]
+                SET [0x7000+A], 0
+            IFN [0x7000+A], 0
+                IFN [0x7000+A], 0xffff
+                    SET [0x8000+A], 0xf01b
+            ADD A, 1
+            IFN A, 0x180
+                SET PC, drawloop
+            SET A, Y
+            MUL A, 0x20
+            ADD A, X
+            IFE [0x7000+A], 0xffff
+                SET PC, eat
+:retfeat    SET [0x7000+A], 1
+            SET [0x8000+A], 0xf01b
+            SET PC, POP
+:eat
+            ADD [length], 1
+            SET [foodleft], 0
+            SET PC, retfeat
+:turn_left
+            IFE [keypress], 1
+                SET PC, afterkey
+            IFE [direction], 0
+                SET [direction], 4
+            SUB [direction], 1
+            SET [keypress], 1
+            SET PC, afterkey
+:turn_right
+            IFE [keypress], 1
+                SET PC, afterkey
+            ADD [direction], 1
+            IFE [direction], 4
+                SET [direction], 0
+            SET [keypress], 1
+            SET PC, afterkey
+:end        SET PC, end        ; Setup trap
+:createfood JSR rand
+            DIV A, 0xab        ; Shrink random number to a max of 0x17f, ( 0xffff / 0xab = approx. 0x17f )
+            IFN [0x8000+A], 0
+                SET PC, createfood
+            SET [0x8000+A], 0xa72A
+            SET [0x7000+A], 0xffff
+            SET [foodleft], 1
+            SET PC, POP
+:direction
+DAT 0
+:keypress
+DAT 0
+:length
+DAT 10
+:deathmessage
+DAT "You died."
+:menumessage
+DAT "Press [enter] to start."
+:foodleft
+DAT 0
+:setup_keyboard
+            SET [keyboard_id], I   ; I holds the hardware ID, alternatively check hwenum_targets + 3
+            SET PC, POP            ; Identified handlers need to pop PC
+:setup_clock
+            SET [clock_id], I
+            SET PC, POP
+:setup_lem1802
+            SET [lem1802_id], I
+            set PC, POP
+:setup_unknown
+            SET PC, POP
+:keyboard_id DAT 0xffff
+:clock_id    DAT 0xffff
+:lem1802_id  DAT 0xffff
+:hwenum_targets                             ; Name is fixed
+DAT setup_unknown                           ; Start with one word address to the unknown setup routine
+DAT 0x30cf, 0x7406, 0xffff, setup_keyboard  ; one hardware setup is 4 words long
+DAT 0x7349, 0xf615, 0xffff, setup_lem1802   ; Format: 4 higher ID bits, 4 lower ID bits, recognized
+DAT 0x12d0, 0xb402, 0xffff, setup_clock     ; hardware ID (default 0xffff), last address to hwhandler
+:hwenum_num_targets     ; Name is fixed
+DAT 3
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;___________________________________________________;;
+;;|;;;;;;;;;;_HARDWARE_ENUMERATION_LIBRARY_;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;_DCPU_LIBHWE_;;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;_Ver._1.0_;;;;;;;;;_S0lll0s_;;;;;;;;;_07/02/12_;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;_see_|demonstration|_for_a_quick_demonstration_;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;;_TODO_;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;;;;_implement_version_and_manufacturer_info_;;;;|;;
+;;|;;;;;;;;;;_turn_|hwenum|_into_a_macro_;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;|;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;|;;
+;;________looks_________________________like_________;;
+;;____PPP____O____L______A____RRR____O____I___DDD____;;
+;;____PPP___O_O___L_____A_A___RRR___O_O___I___D__D___;;
+;;____P______O____LLL__A___A__R_R____O____I___DDD____;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+:hwenum
+             SET PUSH, A
+             SET PUSH, B
+             SET PUSH, I
+             SET PUSH, J
+             SET PUSH, X
+             HWN I ; Set I to #connected hardware
+             SUB I, 1
+:hwenum_loop
+             IFE I, 0xffff
+                  SET PC, hwenum_finished
+             HWQ I
+             SET PC, hwenum_handle
+:hwenum_reentry
+             SUB I, 1
+             SET PC, hwenum_loop
+:hwenum_handle
+             SET PUSH, hwenum_reentry
+             SET J, [hwenum_num_targets]
+             ADD J, 1
+             SET X, 0
+:hwenum_lidentify
+             SUB J, 1
+             ADD X,1
+             IFE J, 0
+                SET PC, [hwenum_targets] ; Call unknown
+             IFN B, [hwenum_targets + X]
+                 SET PC, hwenum_addthree
+             ADD X, 1
+             IFN A, [hwenum_targets + X]
+                  SET PC, hwenum_addtwo
+             ADD X, 1
+             IFN [hwenum_targets + X], 0xffff
+                    SET PC, hwenum_addone
+             SET [hwenum_targets + X], I ; Set 3rd Parameter (id)
+             ADD X, 1
+             SET PC, [hwenum_targets + X] ; Call setup (4th Parameter)
+:hwenum_addthree
+             ADD X, 1
+:hwenum_addtwo
+             ADD X, 1
+:hwenum_addone
+             ADD X, 1
+             SET PC, hwenum_lidentify
+:hwenum_finished
+            SET X, POP
+            SET J, POP
+            SET I, POP
+            SET B, POP
+            SET A, POP
+            SET PC, POP
+;;;;;;;;;;; RANDOM LIB ;;;;;;;;;;;
+; leave random word in A
+; To seed the generator, simply overwrite the data in randseed.
+:randseed dat 0x5678
+:rstwo dat 0x1234
+:rand
+; 0x0019660D x seed + 1
+SET B, [randseed]
+SET A, [rstwo]
+MUL A, 0x660D
+MUL B, 0x0019
+MUL [randseed], 0x660D
+ADX A, B
+ADD [randseed], 1
+ADD A, EX
+SET [rstwo], A
+SET PC, POP

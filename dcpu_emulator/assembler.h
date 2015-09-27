@@ -18,8 +18,8 @@ typedef struct argumentStruct {
 typedef struct assembledInstruction {
 	std::string source;
 	std::string label;
-	word_t* data;
-	word_t dataLength;
+	std::vector<word_t> data;
+	//word_t dataLength;
 	word_t address;
 	opcode_t opcode;
 	argumentStruct_t a;

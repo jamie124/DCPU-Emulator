@@ -64,7 +64,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 	while (1) {
 
-		std::cin.get();
+	//	std::cin.get();
 
 
 		word_t executingPC = _programCounter;
@@ -72,7 +72,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 		// Decode
 		opcode_t opcode = getOpcode(instruction);
-		nonbasicOpcode_t nonbasicOpcode;
+		nonbasicOpcode_t nonbasicOpcode = 0x0;
 
 		word_t bLoc;
 		word_t aLoc;
@@ -85,7 +85,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 			nonbasicOpcode = (nonbasicOpcode_t)getArgument(instruction, 0);
 
 		//	evaluateArgument(getArgument(instruction, 1), aLoc);
-			aLoc = getValue(aArg, false);
+			aLoc = getValue(aArg, true);
 			skipStore = 1;
 		}
 		else {
@@ -117,6 +117,8 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 				break;
 
 			case OP_HWN:
+				skipStore = false;
+
 				result = _devices.size();
 				_cycle += 2;
 
@@ -124,21 +126,22 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 			case OP_HWQ:
 			{
-				auto& currentDevice = _devices.at(0);
+				auto& currentDevice = _devices.at(aLoc);
 
-				auto identifer = currentDevice->getIdentifier();
-				auto manufaturer = currentDevice->getManufacturer();
-				auto version = currentDevice->getVersion();
+				if (currentDevice) {
+					auto identifer = currentDevice->getIdentifier();
+					auto manufaturer = currentDevice->getManufacturer();
+					auto version = currentDevice->getVersion();
 
-				// A  & B
-				_registers.at(0) = identifer & 0xffff;
-				_registers.at(1) = (identifer >> 16) & 0xffff;
-				// C
-				_registers.at(2) = version & 0xffff;
-				// X & Y
-				_registers.at(3) = manufaturer & 0xffff;
-				_registers.at(4) = (manufaturer >> 16) & 0xffff;
-
+					// A  & B
+					_registers.at(0) = identifer & 0xffff;
+					_registers.at(1) = (identifer >> 16) & 0xffff;
+					// C
+					_registers.at(2) = version & 0xffff;
+					// X & Y
+					_registers.at(3) = manufaturer & 0xffff;
+					_registers.at(4) = (manufaturer >> 16) & 0xffff;
+				}
 				_cycle += 4;
 			}
 				break;
@@ -532,7 +535,12 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 		}
 
 		if (!skipStore) {
-			setValue(bArg, result);
+			if (nonbasicOpcode != 0) {
+				setValue(aArg, result);
+			}
+			else {
+				setValue(bArg, result);
+			}
 		}
 
 		// TODO: Update video memory
@@ -568,7 +576,10 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 		printf("Instruction: 0x%04hx\n", instruction);
 
 		std::cout << _currentDebugMessage.c_str() << std::endl;
-		std::cout << lineMappings.at(executingPC) << std::endl;
+
+		if (lineMappings.find(executingPC) != lineMappings.end()) {
+			std::cout << lineMappings.at(executingPC) << std::endl;
+		}
 
 		// Print part of stack
 		for (int i = 0xffff; i > (0xfff0); --i) {
