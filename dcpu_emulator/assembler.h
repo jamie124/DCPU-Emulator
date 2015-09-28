@@ -2,12 +2,10 @@
 
 #include "cpu.h"
 
-const int MAX_CHARS = 1024;
-
 typedef struct argumentStruct {
 	argument_t argument;
 	word_t nextWord;
-	std::string labelReference;		// If NULL, nextWord is valid, otherwise nextWord should point to this
+	std::string labelReference;	
 	bool badArgument;
 	bool argAlreadySet;
 
@@ -19,13 +17,10 @@ typedef struct assembledInstruction {
 	std::string source;
 	std::string label;
 	std::vector<word_t> data;
-	//word_t dataLength;
 	word_t address;
 	opcode_t opcode;
 	argumentStruct_t a;
 	argumentStruct_t b;
-	std::shared_ptr<struct assembledInstruction> next;
-
 } assembledInstruction_t;
 
 using  AssembledInstructionPtr = std::shared_ptr<assembledInstruction_t>;
@@ -38,23 +33,20 @@ private:
 	int registerFor(char regName);
 	argumentStruct_t argumentFor(const std::string& arg, bool isB);
 
-	char* cleanString(char *rawLine);
-
+	/*
 	std::string& ltrim(std::string& str);
 	std::string& rtrim(std::string& str);
 	std::string& trim(std::string& str);
-
 	unsigned int split(const std::string &txt, std::vector<std::string> &strs, char splitChar);
-
 	std::string replace(const std::string& input, char from, char to);
-
 	std::string toLower(const std::string& input);
+	*/
 
 	int processLine(
 		const std::string& currentLine, 
 		std::string& data,
 		std::string& label,
-		bool &functionOnNextLine, 
+		bool& functionOnNextLine, 
 		std::string& command, 
 		std::string& arg1,
 		std::string& arg2,
@@ -63,35 +55,35 @@ private:
 	int processCommand(
 		const std::string& command, 
 		std::string data,
-		word_t &address, 
+		word_t& address, 
 		const std::string& label,
-		AssembledInstructionPtr &head, 
-		AssembledInstructionPtr &tail, 
-		AssembledInstructionPtr &instruction);
+		assembledInstruction_t& instruction);
 
 	void processArg1(
 		const std::string& command,
 		const std::string& arg,
 		word_t &address, 
 		const std::string& label,
-		AssembledInstructionPtr &instruction);
+		assembledInstruction_t& instruction);
 
 	void processArg2(
 		const std::string& command,
 		const std::string& arg,
 		word_t &address, 
 		const std::string& label,
-		AssembledInstructionPtr &instruction);
+		assembledInstruction_t& instruction);
 
 public:
-	Assembler(void);
-	~Assembler(void);
+	Assembler();
+	~Assembler();
 
 	int compile(const std::string& filename);
 
 	std::map<word_t, std::string> getLineMappings() const;
 
 private:
+	std::vector<assembledInstruction_t> _instructions;
+
 	std::map<std::string, word_t> _foundLabels;
 	std::map<word_t, std::string> _lineMappings;
 };

@@ -11,6 +11,7 @@ public:
 
 	virtual bool init() = 0;
 	virtual void interrupt() = 0;
+	virtual void update() = 0;
 
 	uint32_t getIdentifier() const;
 	uint32_t getManufacturer() const;

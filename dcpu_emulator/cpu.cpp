@@ -66,7 +66,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 	while (1) {
 
-		std::cin.get();
+		//std::cin.get();
 
 
 		word_t executingPC = _programCounter;
@@ -560,6 +560,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 		// TODO: Update video memory
 
 	//	if (videoDirty) {
+		/*
 			clearScreen();
 			for (int i = 0; i < TERM_HEIGHT; i++) {
 				for (int j = 0; j < TERM_WIDTH; j += 1) {
@@ -568,6 +569,12 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 					setScreen(i, j, toPrint);
 				}
 			}
+			*/
+		
+		for (auto& device : _devices) {
+			device->update();
+		}
+
 
 	//		videoDirty = false;
 	//	}

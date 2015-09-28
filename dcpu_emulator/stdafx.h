@@ -20,6 +20,8 @@
 #include <string>
 #include <vector>
 
+#include <SDL.h>
+
 #include <Windows.h>
 
 // TODO: reference additional headers your program requires here

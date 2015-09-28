@@ -17,3 +17,11 @@ std::string string_format(const std::string& format, Args ... args) {
 	snprintf(buf.get(), size, format.c_str(), args ...);
 	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
+
+std::string& ltrim(std::string& str);
+std::string& rtrim(std::string& str);
+std::string& trim(std::string& str);
+unsigned int split(const std::string &txt, std::vector<std::string> &strs, char splitChar);
+std::string replace(const std::string& input, char from, char to);
+std::string replaceStr(const std::string& str, const std::string& from, const std::string& to);
+std::string toLower(const std::string& input);
