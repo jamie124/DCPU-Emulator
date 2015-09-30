@@ -1,9 +1,8 @@
 /**
 DCPU Emulator.
-Written by James Whitwell, 2012.
+Written by James Whitwell, 2015.
 
 CPU emulation class
-This code orginally based on dcpu-emu https://bitbucket.org/interfect/dcpu-emu
 
 Started 7-Apr-2012
 */
@@ -60,9 +59,6 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 	input.close();
 
-	bool videoDirty = false;
-
-	int pause;
 
 	while (1) {
 
@@ -73,8 +69,8 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 		instruction_t instruction = _memory[_programCounter++];
 
 		// Decode
-		opcode_t opcode = getOpcode(instruction);
-		nonbasicOpcode_t nonbasicOpcode = 0x0;
+		opcode opcode = getOpcode(instruction);
+		nonbasic_opcode nonbasicOpcode = 0x0;
 
 		word_t bLoc;
 		word_t aLoc;
@@ -84,9 +80,8 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 		auto aArg = getArgument(instruction, true);
 
 		if (opcode == OP_NONBASIC) {
-			nonbasicOpcode = (nonbasicOpcode_t)getArgument(instruction, 0);
+			nonbasicOpcode = (nonbasic_opcode)getArgument(instruction, 0);
 
-		//	evaluateArgument(getArgument(instruction, 1), aLoc);
 			aLoc = getValue(aArg, true);
 			skipStore = 1;
 		}
@@ -95,6 +90,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 			bLoc = getValue(bArg, false);
 			skipStore = isConst(getArgument(instruction, 0));		// If literal
 		}
+
 		word_t result = 0;
 
 		// Execute
@@ -580,7 +576,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 	//	}
 
 
-		setCursorPos(1, TERM_HEIGHT + 1);
+		setCursorPos(0, 0);
 		printf("==== Program Status - CYCLE 0x%04hx====\n", _cycle);
 		printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n", 
 			_registers.at(0), 
@@ -725,7 +721,7 @@ void Cpu::setValue(argument_t argument, word_t value)
 }
 
 // Get an opcode from instruction
-opcode_t Cpu::getOpcode(instruction_t instruction)
+opcode Cpu::getOpcode(instruction_t instruction)
 {
 	return instruction & 0x1F;
 }
@@ -741,7 +737,7 @@ argument_t Cpu::getArgument(instruction_t instruction, bool argB)
 
 }
 
-instruction_t Cpu::setOpcode(instruction_t instruction, opcode_t opcode)
+instruction_t Cpu::setOpcode(instruction_t instruction, opcode opcode)
 {
 	// Clear low 4 bits and OR in opcode
 	return (instruction & 0xFFF0) | opcode;

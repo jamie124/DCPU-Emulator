@@ -4,8 +4,8 @@ using word_t = unsigned short;
 using instruction_t = word_t;
 
 using argument_t = unsigned char;
-using opcode_t = unsigned char;
-using nonbasicOpcode_t = argument_t;
+using opcode = unsigned char;
+using  nonbasic_opcode = argument_t;
 
 using bool_t = unsigned char;
 

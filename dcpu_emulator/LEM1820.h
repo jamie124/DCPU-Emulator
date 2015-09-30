@@ -1,6 +1,7 @@
 #pragma once
 #include "Device.h"
 
+
 class LEM1820 :
 	public Device
 {
@@ -14,20 +15,36 @@ public:
 
 
 private:
-	void charBlit(const uint16_t *charmap, SDL_Surface *dst,
-		SDL_Rect *dstrect, uint8_t chr, Uint32 color);
 
-	SDL_Window* _window;
-	SDL_Renderer* _renderer;
+	void createBlankTexture(uint32_t width, uint32_t height);
 
-	SDL_Surface* _surface;
-	SDL_Texture* _texture;
+	std::vector<word_t> _characterFont;
+
+	std::vector<word_t> _characterMap;
 
 	word_t _memOffset;
 
-	word_t _cellsHeight;
-	word_t _cellsWidth;
+	uint16_t _cellsHeight;
+	uint16_t _cellsWidth;
+	uint16_t _cellHeight;
+	uint16_t _cellWidth;
+
+	uint16_t _screenHeight;
+	uint16_t _screenWidth;
+
+	bool _imageDirty;
 
 
+	GLFWwindow* _window;
+
+	GLuint _vao;
+	GLuint _vbo;
+	GLuint _ebo;
+
+	GLuint _texture;
+
+	GLuint _vertexShader;
+	GLuint _fragmentShader;
+	GLuint _shaderProgram;
 };
 

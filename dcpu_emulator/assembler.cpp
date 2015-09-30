@@ -5,6 +5,26 @@
 
 Assembler::Assembler()
 {
+	_opcodes = {
+		{"set", OP_SET}, { "add", OP_ADD },{ "sub", OP_SUB },
+		{ "mul", OP_MUL },{ "mli", OP_MLI },
+		{ "div", OP_DIV },{"dvi", OP_DVI},
+		{ "mod", OP_MOD },{ "mdi", OP_MDI },
+		{ "add", OP_AND },{ "bor", OP_BOR },{ "xor", OP_XOR },
+		{ "shr", OP_SHR },{ "asr", OP_ASR },{ "shl", OP_SHL },
+		{"ifb", OP_IFB},{ "ifc", OP_IFC },{ "ife", OP_IFE },
+		{ "ifn", OP_IFN },{ "ifg", OP_IFG },{ "ifa", OP_IFA},
+		{ "ifl", OP_DVI },{ "ifu", OP_IFU },
+		{ "adx", OP_ADX },{ "sbx", OP_SBX },
+		{ "sti", OP_STI },{ "std", OP_STD }
+	};
+
+	_nonbasicOpcode = {
+		{"jsr", OP_JSR},
+		{"int", OP_INT},{ "iag", OP_IAG },{ "ias", OP_IAS },
+		{ "rfi", OP_RFI },{ "iaq", OP_IAQ },
+		{ "hwn", OP_HWN },{ "hwq", OP_HWQ },{ "hwi", OP_HWI }
+	};
 }
 
 
@@ -12,115 +32,10 @@ Assembler::~Assembler()
 {
 }
 
-opcode_t Assembler::opcodeFor(const std::string& command)
+opcode Assembler::opcodeFor(const std::string& command)
 {
-	if (command == "set") {
-		return OP_SET;
-	}
-
-	if (command == "add") {
-		return OP_ADD;
-	}
-
-	if (command == "sub") {
-		return OP_SUB;
-	}
-
-	if (command == "mul") {
-		return OP_MUL;
-	}
-
-	if (command == "mli") {
-		return OP_MLI;
-	}
-
-	if (command == "div") {
-		return OP_DIV;
-	}
-
-	if (command == "dvi") {
-		return OP_DVI;
-	}
-
-	if (command == "mod") {
-		return OP_MOD;
-	}
-
-	if (command == "mdi") {
-		return OP_MDI;
-	}
-
-
-	if (command == "and") {
-		return OP_AND;
-	}
-
-	if (command == "bor") {
-		return OP_BOR;
-	}
-
-	if (command == "xor") {
-		return OP_XOR;
-	}
-
-	if (command == "shr") {
-		return OP_SHR;
-	}
-
-	if (command == "asr") {
-		return OP_ASR;
-	}
-
-	if (command == "shl") {
-		return OP_SHL;
-	}
-
-	if (command == "ifb") {
-		return OP_IFB;
-	}
-
-	if (command == "ifc") {
-		return OP_IFC;
-	}
-
-	if (command == "ife") {
-		return OP_IFE;
-	}
-
-	if (command == "ifn") {
-		return OP_IFN;
-	}
-
-	if (command == "ifg") {
-		return OP_IFG;
-	}
-
-	if (command == "ifa") {
-		return OP_IFA;
-	}
-
-	if (command == "ifl") {
-		return OP_IFL;
-	}
-
-	if (command == "ifu") {
-		return OP_IFU;
-	}
-
-	if (command == "adx") {
-		return OP_ADX;
-	}
-
-	if (command == "sbx") {
-		return OP_SBX;
-	}
-
-	if (command == "sti") {
-		return OP_STI;
-	}
-
-	if (command == "std") {
-		return OP_STD;
+	if (_opcodes.find(command) != _opcodes.end()) {
+		return _opcodes.at(command);
 	}
 
 	// Assume non-basic
@@ -128,42 +43,10 @@ opcode_t Assembler::opcodeFor(const std::string& command)
 }
 
 // Get non-basic opcode from string
-nonbasicOpcode_t Assembler::nonbasicOpcodeFor(const std::string& command)
+nonbasic_opcode Assembler::nonbasicOpcodeFor(const std::string& command)
 {
-	if (command == "jsr") {
-		return OP_JSR;
-	}
-
-	if (command == "int") {
-		return OP_INT;
-	}
-
-	if (command == "iag") {
-		return OP_IAG;
-	}
-
-	if (command == "ias") {
-		return OP_IAS;
-	}
-
-	if (command == "rfi") {
-		return OP_RFI;
-	}
-
-	if (command == "iaq") {
-		return OP_IAQ;
-	}
-
-	if (command == "hwn") {
-		return OP_HWN;
-	}
-
-	if (command == "hwq") {
-		return OP_HWQ;
-	}
-
-	if (command == "hwi") {
-		return OP_HWI;
+	if (_nonbasicOpcode.find(command) != _nonbasicOpcode.end()) {
+		return _nonbasicOpcode.at(command);
 	}
 
 	// Instruction not found
@@ -429,7 +312,6 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg, bool isB)
 			toReturn.argument = 0x20 + (labelPos == 0xffff ? 0x00 : (0x01 + labelPos));
 		}
 		else {
-
 			toReturn.argument = ARG_NEXTWORD_LITERAL;
 			toReturn.nextWord = labelPos;
 		}
@@ -971,9 +853,9 @@ int Assembler::processCommand(const std::string& command, std::string data, word
 
 		for (auto& dat : splitDat) {
 			std::string temp = trim(dat);
-			
+
 			temp = replaceStr(temp, ",", "");
-			
+
 			if (temp.find("\"") != std::string::npos) {
 				// Parse string
 				temp = replaceStr(temp, "\"", "");
@@ -1000,7 +882,7 @@ int Assembler::processCommand(const std::string& command, std::string data, word
 				instruction.data.push_back(datValue);
 			}
 
-			
+
 		}
 
 		address += instruction.data.size();

@@ -9,7 +9,6 @@ Started 7-Apr-2012
 */
 #pragma once
 
-//#include "Device.h"
 
 #include "Utils.h"
 
@@ -67,7 +66,6 @@ static const word_t ARG_REG_NEXTWORD_INDEX_START = 0x10;
 static const word_t ARG_REG_NEXTWORD_INDEX_END = 0x18;
 static const word_t ARG_PUSH_POP = 0x18;
 static const word_t ARG_PEEK = 25;
-//static const word_t ARG_PUSH = 26;
 static const word_t ARG_SP = 0x1b;
 static const word_t ARG_PC = 0x1c;
 static const word_t ARG_O = 0x1d;
@@ -79,18 +77,12 @@ static const word_t ARG_LITERAL_END = 0x3f;
 const long MEMORY_LIMIT = 0x10000;
 const int NUM_REGISTERS = 8;
 
-const int TERM_WIDTH = 32;
-const int TERM_HEIGHT = 16;
-const long CONSOLE_START = 0x8000;
-const long CONSOLE_END = (CONSOLE_START + TERM_WIDTH + TERM_HEIGHT);
+//const int TERM_WIDTH = 32;
+//const int TERM_HEIGHT = 16;
+//const long CONSOLE_START = 0x8000;
+//const long CONSOLE_END = (CONSOLE_START + TERM_WIDTH + TERM_HEIGHT);
 
-// Keyboard input
-const long KEYBOARD_ADDRESS = 0x9000;
-const int KEYBOARD_BUFFER_LENGTH = 1;
 
-const int FRAMESKIP = 10;
-
-const int NUM_COLOURS = 16;
 
 class Device;
 
@@ -104,7 +96,7 @@ public:
 	int run(const std::string& filename, std::map<word_t, std::string> lineMappings);
 
 	static bool_t usesNextWord(argument_t argument);
-	static instruction_t setOpcode(instruction_t instruction, opcode_t opcode);
+	static instruction_t setOpcode(instruction_t instruction, opcode opcode);
 	static instruction_t setArgument(instruction_t instruction, bool_t which, argument_t argument);
 
 	void setScreen(word_t row, word_t column, word_t character);
@@ -134,7 +126,7 @@ private:
 	word_t getValue(argument_t argument, bool argA);
 	void setValue(argument_t argument, word_t value);
 
-	opcode_t getOpcode(instruction_t instruction);
+	opcode getOpcode(instruction_t instruction);
 	argument_t getArgument(instruction_t instruction, bool argB);
 
 	bool_t isConst(argument_t argument);

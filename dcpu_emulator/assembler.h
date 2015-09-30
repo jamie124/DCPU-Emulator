@@ -18,7 +18,7 @@ typedef struct assembledInstruction {
 	std::string label;
 	std::vector<word_t> data;
 	word_t address;
-	opcode_t opcode;
+	opcode opcode;
 	argumentStruct_t a;
 	argumentStruct_t b;
 } assembledInstruction_t;
@@ -28,19 +28,10 @@ using  AssembledInstructionPtr = std::shared_ptr<assembledInstruction_t>;
 class Assembler
 {
 private:
-	opcode_t opcodeFor(const std::string& command);
-	nonbasicOpcode_t nonbasicOpcodeFor(const std::string& command);
+	opcode opcodeFor(const std::string& command);
+	nonbasic_opcode nonbasicOpcodeFor(const std::string& command);
 	int registerFor(char regName);
 	argumentStruct_t argumentFor(const std::string& arg, bool isB);
-
-	/*
-	std::string& ltrim(std::string& str);
-	std::string& rtrim(std::string& str);
-	std::string& trim(std::string& str);
-	unsigned int split(const std::string &txt, std::vector<std::string> &strs, char splitChar);
-	std::string replace(const std::string& input, char from, char to);
-	std::string toLower(const std::string& input);
-	*/
 
 	int processLine(
 		const std::string& currentLine, 
@@ -86,5 +77,8 @@ private:
 
 	std::map<std::string, word_t> _foundLabels;
 	std::map<word_t, std::string> _lineMappings;
+
+	std::map<std::string, opcode> _opcodes;
+	std::map<std::string, nonbasic_opcode> _nonbasicOpcode;
 };
 
