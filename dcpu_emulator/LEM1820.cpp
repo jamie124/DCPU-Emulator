@@ -71,6 +71,8 @@ bool LEM1820::init()
 {
 	std::cout << "Initialising LEM1820" << std::endl;
 
+	_pixelBuffer.resize(_screenWidth * _screenHeight * 4);
+
 	_characterFont = {
 
 			0x000f, 0x0808, 0x080f, 0x0808, 0x08f8, 0x0808, 0x00ff, 0x0808,
@@ -253,17 +255,25 @@ void LEM1820::update()
 	glClear(GL_COLOR_BUFFER_BIT);
 
 
-	std::vector<uint8_t> pixelBuffer;
+	//std::vector<uint8_t> pixelBuffer;
 
-	pixelBuffer.resize(_screenWidth * _screenHeight * 4);
+	//pixelBuffer.resize(_screenWidth * _screenHeight * 4);
 
+	for (auto i = 0; i < _pixelBuffer.size(); ++i) {
+		_pixelBuffer[i] = 0;
+	}
 
+	for (auto row = 0; row < _cellsHeight; ++row) {
+		for (auto col = 0; col < _cellsWidth; ++col) {
+			drawGlyph(col, row, (row * _cellsWidth + col));
+		}
+	}
+	/*
 	word_t glyph = 19;
 
 	glyph *= 2;
 
 	auto index = 0;
-
 	std::vector<word_t> cols;
 	cols.resize(4);
 
@@ -301,14 +311,12 @@ void LEM1820::update()
 
 		}
 
-
 	}
-
-
+	*/
 
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
 		_screenWidth, _screenHeight,
-		GL_RGBA, GL_UNSIGNED_BYTE, &pixelBuffer[0]);
+		GL_RGBA, GL_UNSIGNED_BYTE, &_pixelBuffer[0]);
 
 
 	// Draw a rectangle from the 2 triangles using 6 indices
@@ -318,38 +326,6 @@ void LEM1820::update()
 
 	glfwPollEvents();
 
-	/*
-	if (_renderer != nullptr) {
-		SDL_RenderClear(_renderer);
-
-		SDL_Event event;
-		SDL_PollEvent(&event);
-
-
-		if (_imageDirty) {
-
-			Uint32* pixels = new Uint32[4 * 8];
-
-			for (int h = 0; h < 4; h++) {
-				for (int w = 0; w < 8; w++) {
-					pixels[h * 8 + w] =
-				}
-			}
-
-			SDL_UpdateTexture(_texture, NULL, pixels, 8 * sizeof(Uint32));
-
-			delete[] pixels;
-
-		}
-
-		if (_texture != nullptr) {
-			SDL_RenderCopy(_renderer, _texture, NULL, NULL);
-		}
-
-		SDL_RenderPresent(_renderer);
-		//SDL_Delay(100);
-	}
-	*/
 }
 
 void LEM1820::createBlankTexture(uint32_t width, uint32_t height)
@@ -384,6 +360,54 @@ void LEM1820::createBlankTexture(uint32_t width, uint32_t height)
 		GL_UNSIGNED_BYTE,
 		&pixelBuffer[0]);
 
+}
+
+void LEM1820::drawGlyph(word_t x, word_t y, word_t word)
+{
+	std::vector<word_t> cols;
+	cols.resize(4);
+
+	auto glyph = word * 2;
+
+	if (glyph >= _characterFont.size()) {
+		return;
+	}
+
+	cols[0] = _characterFont[glyph] >> 8;
+	cols[1] = _characterFont[glyph] & 0xff;
+	cols[2] = _characterFont[glyph + 1] >> 8;
+	cols[3] = _characterFont[glyph + 1] & 0xff;
+
+	x = x * 4;
+	y = y * 4;
+
+	for (auto row = 0; row < (_cellHeight * 4); row += 4) {
+		for (auto col = 0; col < (_cellWidth * 4); col += 4) {
+
+			auto index = ((y * _cellHeight) + row) * _screenWidth + ((x * _cellWidth) + col);
+
+		//	std::cout << index << ", ";
+
+			auto bit = (cols[(col / 4)] >> (row / 4)) & 0x01;
+
+			if (bit == 1) {
+				
+				_pixelBuffer[index + 0] = 255;
+				_pixelBuffer[index + 1] = 255;
+				_pixelBuffer[index + 2] = 0;
+				_pixelBuffer[index + 3] = 255;
+			}
+			else {
+				_pixelBuffer[index + 0] = 0;
+				_pixelBuffer[index + 1] = 0;
+				_pixelBuffer[index + 2] = 0;
+				_pixelBuffer[index + 3] = 255;
+			}
+		}
+
+	}
+
+//	std::cout << "";
 }
 
 /*

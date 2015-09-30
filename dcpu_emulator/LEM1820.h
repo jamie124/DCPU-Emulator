@@ -18,6 +18,10 @@ private:
 
 	void createBlankTexture(uint32_t width, uint32_t height);
 
+	void drawGlyph(word_t x, word_t y, word_t word);
+
+	std::vector<uint8_t> _pixelBuffer;
+
 	std::vector<word_t> _characterFont;
 
 	std::vector<word_t> _characterMap;
