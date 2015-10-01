@@ -30,7 +30,7 @@ Cpu::Cpu() :
 		_registers.at(i) = 0;
 	}
 
-	std::unique_ptr<LEM1820> lemMonitor = std::make_unique<LEM1820>(); 
+	std::unique_ptr<LEM1820> lemMonitor = std::make_unique<LEM1820>();
 	lemMonitor->init();
 	lemMonitor->setCpu(this);
 
@@ -61,9 +61,11 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 	input.close();
 
 
+	auto start_time = std::chrono::high_resolution_clock::now();
+
 	while (1) {
 
-	//	std::cin.get();
+		//	std::cin.get();
 
 
 		word_t executingPC = _programCounter;
@@ -143,7 +145,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 				}
 				_cycle += 4;
 			}
-				break;
+			break;
 
 			case OP_HWI:
 			{
@@ -155,7 +157,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 				_cycle += 4;
 			}
-				break;
+			break;
 
 			default:
 				std::cout << "ERROR: Reserved OP_NONBASIC" << std::endl;
@@ -211,11 +213,11 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 				debugInstruction("MUL %x by %x = %x", bLoc, aLoc, result);
 			}
 		}
-			break;
+		break;
 
 		case OP_MLI:
 		{
-			auto temp  = (to32BitSigned(bLoc) * to32BitSigned(aLoc));
+			auto temp = (to32BitSigned(bLoc) * to32BitSigned(aLoc));
 			result = to16BitSigned(temp);
 			_overflow = (word_t)(temp >> 16) & 0xffff;
 			_cycle += 2;
@@ -224,7 +226,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 				debugInstruction("MLI %x by %x = %x", bLoc, aLoc, result);
 			}
 		}
-			break;
+		break;
 
 		case OP_DIV:
 		{
@@ -245,7 +247,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 			}
 			break;
 		}
-		case OP_DVI: 
+		case OP_DVI:
 		{
 			if (aLoc != 0) {
 				result = to16BitSigned(to32BitSigned(bLoc) / to32BitSigned(aLoc));
@@ -356,7 +358,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 			// Shift A left B places, set O
 			_overflow = to16BitSigned((bLoc << aLoc) >> 16);
 			result = (bLoc << aLoc);
-	
+
 			_cycle += 1;
 
 			if (_opcodeDebugging) {
@@ -507,7 +509,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 			break;
 
 		case OP_STD:
-			
+
 			result = aLoc;
 
 			// Increment I & J
@@ -554,57 +556,46 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 			}
 		}
 
-		// TODO: Update video memory
+		auto end_time = std::chrono::high_resolution_clock::now();
+		auto time = end_time - start_time;
 
-	//	if (videoDirty) {
-		/*
-			clearScreen();
-			for (int i = 0; i < TERM_HEIGHT; i++) {
-				for (int j = 0; j < TERM_WIDTH; j += 1) {
-					word_t toPrint = _memory[CONSOLE_START + i * TERM_WIDTH + j];
-
-					setScreen(i, j, toPrint);
-				}
+		if (std::chrono::duration_cast<std::chrono::microseconds>(time).count() > 1000) {
+			for (auto& device : _devices) {
+				device->update();
 			}
-			*/
-		
-		for (auto& device : _devices) {
-			device->update();
+
+			start_time = std::chrono::high_resolution_clock::now();
 		}
 
 
-	//		videoDirty = false;
-	//	}
 
+			setCursorPos(0, 0);
+			printf("==== Program Status - CYCLE 0x%04hx====\n", _cycle);
+			printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n",
+				_registers.at(0),
+				_registers.at(1),
+				_registers.at(2));
+			printf("X:  0x%04hx\tY:  0x%04hx\tZ:  0x%04hx\n",
+				_registers.at(3),
+				_registers.at(4),
+				_registers.at(5));
+			printf("I:  0x%04hx\tJ:  0x%04hx\n",
+				_registers.at(6),
+				_registers.at(7));
+			printf("PC: 0x%04hx\tSP: 0x%04hx\tEX:  0x%04hx\n", _programCounter, _stackPointer, _overflow);
+			printf("Instruction: 0x%04hx\n", instruction);
 
-		/*
-		setCursorPos(0, 0);
-		printf("==== Program Status - CYCLE 0x%04hx====\n", _cycle);
-		printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n", 
-			_registers.at(0), 
-			_registers.at(1),
-			_registers.at(2));
-		printf("X:  0x%04hx\tY:  0x%04hx\tZ:  0x%04hx\n", 
-			_registers.at(3),
-			_registers.at(4),
-			_registers.at(5));
-		printf("I:  0x%04hx\tJ:  0x%04hx\n", 
-			_registers.at(6),
-			_registers.at(7));
-		printf("PC: 0x%04hx\tSP: 0x%04hx\tEX:  0x%04hx\n", _programCounter, _stackPointer, _overflow);
-		printf("Instruction: 0x%04hx\n", instruction);
+			std::cout << _currentDebugMessage.c_str() << std::endl;
 
-		std::cout << _currentDebugMessage.c_str() << std::endl;
+			if (lineMappings.find(executingPC) != lineMappings.end()) {
+				std::cout << lineMappings.at(executingPC) << std::endl;
+			}
 
-		if (lineMappings.find(executingPC) != lineMappings.end()) {
-			std::cout << lineMappings.at(executingPC) << std::endl;
-		}
-
-		// Print part of stack
-		for (int i = 0xffff; i > (0xfff0); --i) {
-			printf("0x%04hx,\t", _memory[i]);
-		}
-	*/
+			// Print part of stack
+			for (int i = 0xffff; i > (0xfff0); --i) {
+				printf("0x%04hx,\t", _memory[i]);
+			}
+	
 
 	}
 
@@ -642,10 +633,11 @@ word_t Cpu::getValue(argument_t argument, bool argA)
 			// Pop
 			word_t value = _memory[_stackPointer];
 			_stackPointer = (_stackPointer + 1) & 0xffff;
-			
+
 			return value;
 
-		} else {
+		}
+		else {
 			// Push
 			word_t value = _memory[(_stackPointer - 1) & 0xffff];
 

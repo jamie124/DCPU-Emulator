@@ -264,13 +264,13 @@ void LEM1820::update()
 
 		auto memory = _cpu->getMemory();
 
-		/*
+	
 		for (auto row = 0; row < _cellsHeight; ++row) {
 			for (auto col = 0; col < _cellsWidth; ++col) {
 				drawCell(col, row, memory[_memOffset + (row * _cellsWidth + col)]);
 			}
 		}
-		*/
+	//	
 		drawCell(0, 0, memory[_memOffset + (0 * _cellsWidth + 0)]);
 
 		_cpu->resetMemoryDirty();
@@ -381,10 +381,10 @@ void LEM1820::drawGlyph(word_t x, word_t y, word_t foreground, word_t background
 				_pixelBuffer[index + 3] = 255;
 			}
 			else {
-			//	_pixelBuffer[index + 0] = 0;
-			//	_pixelBuffer[index + 1] = 0;
-			//	_pixelBuffer[index + 2] = 0;
-			//	_pixelBuffer[index + 3] = 255;
+				_pixelBuffer[index + 0] = 0;
+				_pixelBuffer[index + 1] = 0;
+				_pixelBuffer[index + 2] = 0;
+				_pixelBuffer[index + 3] = 255;
 			}
 		}
 	
