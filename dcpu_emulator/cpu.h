@@ -77,13 +77,6 @@ static const word_t ARG_LITERAL_END = 0x3f;
 const long MEMORY_LIMIT = 0x10000;
 const int NUM_REGISTERS = 8;
 
-//const int TERM_WIDTH = 32;
-//const int TERM_HEIGHT = 16;
-//const long CONSOLE_START = 0x8000;
-//const long CONSOLE_END = (CONSOLE_START + TERM_WIDTH + TERM_HEIGHT);
-
-
-
 class Device;
 
 class Cpu
@@ -105,6 +98,11 @@ public:
 
 	word_t getRegister(word_t reg) const;
 
+	const std::vector<word_t> getMemory() const;
+
+	bool isMemoryDirty() const;
+	void resetMemoryDirty();
+
 private:
 	bool _debug;
 	bool _opcodeDebugging;
@@ -115,6 +113,8 @@ private:
 	word_t _overflow;
 
 	word_t _cycle;
+
+	bool _memoryDirty;
 
 	std::vector<word_t> _memory;
 	std::vector<word_t> _registers;

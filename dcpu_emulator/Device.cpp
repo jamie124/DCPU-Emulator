@@ -26,7 +26,7 @@ word_t Device::getVersion() const
 	return _version;
 }
 
-void Device::setCpu(const Cpu* cpu)
+void Device::setCpu(Cpu* cpu)
 {
 	_cpu = cpu;
 }

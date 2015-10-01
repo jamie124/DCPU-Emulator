@@ -17,4 +17,4 @@ IFN J, 12
 SET PC, crash
 
 :vram
-DAT "Hello there!", 0
+DAT "abcdefghijklmno", 0

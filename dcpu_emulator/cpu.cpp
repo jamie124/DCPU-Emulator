@@ -16,7 +16,8 @@ Cpu::Cpu() :
 	_programCounter(0),
 	_stackPointer(0),
 	_overflow(0),
-	_cycle(0)
+	_cycle(0),
+	_memoryDirty(true)
 {
 	_debug = false;
 	_opcodeDebugging = true;
@@ -62,7 +63,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 	while (1) {
 
-		//std::cin.get();
+	//	std::cin.get();
 
 
 		word_t executingPC = _programCounter;
@@ -576,6 +577,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 	//	}
 
 
+		/*
 		setCursorPos(0, 0);
 		printf("==== Program Status - CYCLE 0x%04hx====\n", _cycle);
 		printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n", 
@@ -602,6 +604,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 		for (int i = 0xffff; i > (0xfff0); --i) {
 			printf("0x%04hx,\t", _memory[i]);
 		}
+	*/
 
 	}
 
@@ -695,6 +698,8 @@ void Cpu::setValue(argument_t argument, word_t value)
 		auto reg = _registers.at(regNum);
 
 		_memory[reg] = value;
+
+		_memoryDirty = true;
 	}
 	else if (argument < ARG_REG_NEXTWORD_INDEX_END) {
 		auto regNum = argument - ARG_REG_INDEX_END;
@@ -702,9 +707,13 @@ void Cpu::setValue(argument_t argument, word_t value)
 
 		auto nextWord = _memory[(_programCounter - 1) & 0xffff];
 		_memory[(nextWord + reg) & 0xffff] = value;
+
+		_memoryDirty = true;
 	}
 	else if (argument == ARG_PUSH_POP) {
 		_memory[_stackPointer] = value;
+
+		_memoryDirty = true;
 	}
 	else if (argument == ARG_PC) {
 		_programCounter = value;
@@ -715,6 +724,8 @@ void Cpu::setValue(argument_t argument, word_t value)
 	else if (argument == ARG_NEXTWORD) {
 		auto location = _memory.at(to16BitSigned(_programCounter - 1));
 		_memory.at(location) = value;
+
+		_memoryDirty = true;
 	}
 
 
@@ -892,4 +903,19 @@ void Cpu::clearScreen()
 word_t Cpu::getRegister(word_t reg) const
 {
 	return _registers.at(reg);
+}
+
+const std::vector<word_t> Cpu::getMemory() const
+{
+	return _memory;
+}
+
+bool Cpu::isMemoryDirty() const
+{
+	return _memoryDirty;
+}
+
+void Cpu::resetMemoryDirty()
+{
+	_memoryDirty = false;
 }

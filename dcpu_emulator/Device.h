@@ -17,7 +17,7 @@ public:
 	uint32_t getManufacturer() const;
 	word_t getVersion() const;
 
-	void setCpu(const Cpu* cpu);
+	void setCpu(Cpu* cpu);
 
 protected:
 	std::string _name;
@@ -25,6 +25,6 @@ protected:
 	uint32_t _manufacturer;
 	word_t _version;
 
-	const Cpu* _cpu;
+	 Cpu* _cpu;
 };
 

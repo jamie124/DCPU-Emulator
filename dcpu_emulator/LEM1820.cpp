@@ -21,7 +21,6 @@ const GLchar* fragmentSource =
 "out vec4 outColor;"
 "uniform sampler2D textureLEM;"
 "void main() {"
-//" outColor = vec4(1, 0, 0, 1);"
 "   outColor = texture(textureLEM, Texcoord);"
 "}";
 
@@ -60,11 +59,7 @@ LEM1820::~LEM1820()
 	glDeleteVertexArrays(1, &_vao);
 
 	glfwTerminate();
-	/*
-	SDL_DestroyRenderer(_renderer);
-	SDL_DestroyWindow(_window);
-	SDL_Quit();
-	*/
+
 }
 
 bool LEM1820::init()
@@ -108,6 +103,8 @@ bool LEM1820::init()
 				0x6c10, 0x6c00, 0x4c50, 0x3c00, 0x6454, 0x4c00, 0x0836, 0x4100,
 				0x0077, 0x0000, 0x4136, 0x0800, 0x0201, 0x0201, 0x704c, 0x7000
 	};
+	
+	_characterCols.resize(4);
 
 
 	if (!glfwInit()) {
@@ -210,7 +207,6 @@ bool LEM1820::init()
 
 	glUniform1i(glGetUniformLocation(shaderProgram, "textureLEM"), 0);
 
-
 	createBlankTexture(_screenWidth, _screenHeight);
 
 	return true;
@@ -259,64 +255,38 @@ void LEM1820::update()
 
 	//pixelBuffer.resize(_screenWidth * _screenHeight * 4);
 
-	for (auto i = 0; i < _pixelBuffer.size(); ++i) {
-		_pixelBuffer[i] = 0;
-	}
+	//for (auto i = 0; i < _pixelBuffer.size(); ++i) {
+	//	_pixelBuffer[i] = 0;
+	//}
 
-	for (auto row = 0; row < _cellsHeight; ++row) {
-		for (auto col = 0; col < _cellsWidth; ++col) {
-			drawGlyph(col, row, (row * _cellsWidth + col));
-		}
-	}
-	/*
-	word_t glyph = 19;
+	if (_cpu->isMemoryDirty()) {
+		auto start_time = std::chrono::high_resolution_clock::now();
 
-	glyph *= 2;
+		auto memory = _cpu->getMemory();
 
-	auto index = 0;
-	std::vector<word_t> cols;
-	cols.resize(4);
-
-	for (auto h = 0; h < (_screenHeight * 4); h += 4) {
-		for (auto w = 0; w < (_screenWidth * 4); w += 4) {
-			index = h * _screenWidth + w;
-
-			auto hIndex = (h / 4) / _cellHeight;
-			auto wIndex = (w / 4) / _cellWidth;
-
-			if (((w / 4) % 4) == 0)  {
-				cols[0] = _characterFont[glyph] >> 8;
-				cols[1] = _characterFont[glyph] & 0xff;
-				cols[2] = _characterFont[glyph + 1] >> 8;
-				cols[3] = _characterFont[glyph + 1] & 0xff;
+		/*
+		for (auto row = 0; row < _cellsHeight; ++row) {
+			for (auto col = 0; col < _cellsWidth; ++col) {
+				drawCell(col, row, memory[_memOffset + (row * _cellsWidth + col)]);
 			}
-
-			if (hIndex == 0 && wIndex == 0) {
-				auto bit = (cols[w / 4] >> (h / 4)) & 0x01;
-
-				if (bit == 1) {
-					pixelBuffer[index + 0] = 255;
-					pixelBuffer[index + 1] = 255;
-					pixelBuffer[index + 2] = 0;
-					pixelBuffer[index + 3] = 255;
-				}
-
-				else {
-					pixelBuffer[index + 0] = 0;
-					pixelBuffer[index + 1] = 0;
-					pixelBuffer[index + 2] = 0;
-					pixelBuffer[index + 3] = 255;
-				}
-			}
-
 		}
+		*/
+		drawCell(0, 0, memory[_memOffset + (0 * _cellsWidth + 0)]);
 
+		_cpu->resetMemoryDirty();
+
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+			_screenWidth, _screenHeight,
+			GL_RGBA, GL_UNSIGNED_BYTE, &_pixelBuffer[0]);
+	
+
+		auto end_time = std::chrono::high_resolution_clock::now();
+		auto time = end_time - start_time;
+
+		std::cout << std::chrono::duration_cast<std::chrono::microseconds>(time).count() << " to refresh screen.\n";
 	}
-	*/
 
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-		_screenWidth, _screenHeight,
-		GL_RGBA, GL_UNSIGNED_BYTE, &_pixelBuffer[0]);
+
 
 
 	// Draw a rectangle from the 2 triangles using 6 indices
@@ -362,86 +332,68 @@ void LEM1820::createBlankTexture(uint32_t width, uint32_t height)
 
 }
 
-void LEM1820::drawGlyph(word_t x, word_t y, word_t word)
+void LEM1820::drawCell(word_t x, word_t y, word_t word)
 {
-	std::vector<word_t> cols;
-	cols.resize(4);
+	auto glyph = word & 0x7f;
+	auto blink = (word & 0x80) >> 7;
+	auto background = (word & 0xf00) >> 8;
+	auto foreground = (word & 0xf000) >> 12;
 
-	auto glyph = word * 2;
+	drawGlyph(x, y, foreground, background, glyph);
+}
 
-	if (glyph >= _characterFont.size()) {
-		return;
-	}
+void LEM1820::drawGlyph(word_t x, word_t y, word_t foreground, word_t background, word_t glyph)
+{
+	//auto start_time = std::chrono::high_resolution_clock::now();
+	//std::vector<word_t> cols;
+	//cols.resize(4);
 
-	cols[0] = _characterFont[glyph] >> 8;
-	cols[1] = _characterFont[glyph] & 0xff;
-	cols[2] = _characterFont[glyph + 1] >> 8;
-	cols[3] = _characterFont[glyph + 1] & 0xff;
+	glyph *= 2;
+
+	//if (glyph >= _characterFont.size()) {
+//		return;
+	//}
+
+	_characterCols[0] = _characterFont[glyph] >> 8;
+	_characterCols[1] = _characterFont[glyph] & 0xff;
+	_characterCols[2] = _characterFont[glyph + 1] >> 8;
+	_characterCols[3] = _characterFont[glyph + 1] & 0xff;
 
 	x = x * 4;
 	y = y * 4;
 
+
 	for (auto row = 0; row < (_cellHeight * 4); row += 4) {
+
 		for (auto col = 0; col < (_cellWidth * 4); col += 4) {
 
 			auto index = ((y * _cellHeight) + row) * _screenWidth + ((x * _cellWidth) + col);
 
 		//	std::cout << index << ", ";
 
-			auto bit = (cols[(col / 4)] >> (row / 4)) & 0x01;
+			auto bit = (_characterCols[(col / 4)] >> (row / 4)) & 0x01;
 
 			if (bit == 1) {
 				
-				_pixelBuffer[index + 0] = 255;
-				_pixelBuffer[index + 1] = 255;
+				_pixelBuffer[index + 0] = (foreground > 0 ? 255 : 0);
+				_pixelBuffer[index + 1] = (foreground > 0 ? 255 : 0);
 				_pixelBuffer[index + 2] = 0;
 				_pixelBuffer[index + 3] = 255;
 			}
 			else {
-				_pixelBuffer[index + 0] = 0;
-				_pixelBuffer[index + 1] = 0;
-				_pixelBuffer[index + 2] = 0;
-				_pixelBuffer[index + 3] = 255;
+			//	_pixelBuffer[index + 0] = 0;
+			//	_pixelBuffer[index + 1] = 0;
+			//	_pixelBuffer[index + 2] = 0;
+			//	_pixelBuffer[index + 3] = 255;
 			}
 		}
-
+	
 	}
 
-//	std::cout << "";
-}
+//	auto end_time = std::chrono::high_resolution_clock::now();
+//	auto time = end_time - start_time;
 
-/*
-std::unique_ptr<SDL_Texture> LEM1820::loadTexture(const std::string& path)
-{
-	//The final texture
-	std::unique_ptr<SDL_Texture> newTexture = std::make_unique<SDL_Texture>();
+//	std::cout << std::chrono::duration_cast<std::chrono::microseconds>(time).count() << " to draw glyph.\n";
 
-	//Load image at specified path
-	SDL_Surface* loadedSurface = SDL_LoadBMP(path.c_str());
-	if (loadedSurface == NULL)
-	{
-		printf("Unable to load image %s! SDL_image Error: %s\n", path.c_str(), SDL_GetError());
-	}
-	else
-	{
-		//Create texture from surface pixels
-		newTexture = SDL_CreateTextureFromSurface(_renderer, loadedSurface);
-		if (newTexture == NULL)
-		{
-			printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
-		}
-
-		//Get rid of old loaded surface
-		SDL_FreeSurface(loadedSurface);
-	}
-
-	return newTexture;
-}
-*/
-
-/*
-void LEM1820::charBlit(const uint16_t *charmap, SDL_Surface *dst, SDL_Rect *dstrect, uint8_t chr, Uint32 color)
-{
 
 }
-*/
