@@ -559,7 +559,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 		auto end_time = std::chrono::high_resolution_clock::now();
 		auto time = end_time - start_time;
 
-		if (std::chrono::duration_cast<std::chrono::microseconds>(time).count() > 1000) {
+		if (std::chrono::duration_cast<std::chrono::milliseconds>(time).count() > 5) {
 			for (auto& device : _devices) {
 				device->update();
 			}
@@ -567,7 +567,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 			start_time = std::chrono::high_resolution_clock::now();
 		}
 
-
+		/*
 
 			setCursorPos(0, 0);
 			printf("==== Program Status - CYCLE 0x%04hx====\n", _cycle);
@@ -595,7 +595,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 			for (int i = 0xffff; i > (0xfff0); --i) {
 				printf("0x%04hx,\t", _memory[i]);
 			}
-	
+	*/
 
 	}
 
