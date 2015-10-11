@@ -14,7 +14,7 @@ Assembler::Assembler()
 		{ "shr", OP_SHR },{ "asr", OP_ASR },{ "shl", OP_SHL },
 		{"ifb", OP_IFB},{ "ifc", OP_IFC },{ "ife", OP_IFE },
 		{ "ifn", OP_IFN },{ "ifg", OP_IFG },{ "ifa", OP_IFA},
-		{ "ifl", OP_DVI },{ "ifu", OP_IFU },
+		{ "ifl", OP_IFL },{ "ifu", OP_IFU },
 		{ "adx", OP_ADX },{ "sbx", OP_SBX },
 		{ "sti", OP_STI },{ "std", OP_STD }
 	};
@@ -330,7 +330,7 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg, bool isB)
 
 int Assembler::compile(const std::string& filename)
 {
-	std::string compiledFilename = replaceStr(filename, "dasm16", "bin");
+	std::string compiledFilename = replaceStr(filename, "dasm", "bin");
 
 	std::ifstream sourceFile(filename);
 

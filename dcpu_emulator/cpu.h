@@ -97,6 +97,7 @@ public:
 	void clearScreen();
 
 	word_t getRegister(word_t reg) const;
+	void setRegister(word_t reg, word_t value);
 
 	const std::vector<word_t> getMemory() const;
 

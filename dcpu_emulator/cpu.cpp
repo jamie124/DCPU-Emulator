@@ -10,6 +10,7 @@ Started 7-Apr-2012
 #include "StdAfx.h"
 #include "cpu.h"
 
+#include "Clock.h"
 #include "LEM1820.h"
 
 Cpu::Cpu() :
@@ -30,11 +31,19 @@ Cpu::Cpu() :
 		_registers.at(i) = 0;
 	}
 
+	// LEM
 	std::unique_ptr<LEM1820> lemMonitor = std::make_unique<LEM1820>();
 	lemMonitor->init();
 	lemMonitor->setCpu(this);
 
 	_devices.push_back(std::move(lemMonitor));
+
+	// Clock
+	std::unique_ptr<Clock> clock = std::make_unique<Clock>();
+	clock->init();
+	clock->setCpu(this);
+
+	_devices.push_back(std::move(clock));
 }
 
 Cpu::~Cpu()
@@ -43,7 +52,7 @@ Cpu::~Cpu()
 
 int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMappings)
 {
-	clearScreen();
+//	clearScreen();
 
 	std::ifstream input(filename.c_str(), std::ios::binary);
 
@@ -65,7 +74,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 	while (1) {
 
-		//	std::cin.get();
+		std::cin.get();
 
 
 		word_t executingPC = _programCounter;
@@ -567,10 +576,10 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 			start_time = std::chrono::high_resolution_clock::now();
 		}
 
-		/*
-
+		
+		clearScreen();
 			setCursorPos(0, 0);
-			printf("==== Program Status - CYCLE 0x%04hx====\n", _cycle);
+					printf("==== Program Status - CYCLE 0x%04hx====\n", _cycle);
 			printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n",
 				_registers.at(0),
 				_registers.at(1),
@@ -595,8 +604,8 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 			for (int i = 0xffff; i > (0xfff0); --i) {
 				printf("0x%04hx,\t", _memory[i]);
 			}
-	*/
 
+		
 	}
 
 	return 1;
@@ -843,6 +852,7 @@ void Cpu::debugInstruction(const std::string& message, word_t first, word_t seco
 	_currentDebugMessage = string_format(message, first, second, result);
 }
 
+
 void Cpu::setScreen(word_t row, word_t column, word_t character)
 {
 	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -895,6 +905,11 @@ void Cpu::clearScreen()
 word_t Cpu::getRegister(word_t reg) const
 {
 	return _registers.at(reg);
+}
+
+void Cpu::setRegister(word_t reg, word_t value)
+{
+	_registers.at(reg) = value;
 }
 
 const std::vector<word_t> Cpu::getMemory() const
