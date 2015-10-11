@@ -124,7 +124,7 @@ private:
 
 	std::vector<std::unique_ptr<Device>> _devices;
 
-	word_t getValue(argument_t argument, bool argA);
+	word_t getValue(argument_t argument, bool argA, bool noSPChange);
 	void setValue(argument_t argument, word_t value);
 
 	opcode getOpcode(instruction_t instruction);

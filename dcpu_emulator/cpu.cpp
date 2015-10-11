@@ -30,15 +30,7 @@ Cpu::Cpu() :
 	for (word_t i = 0; i < NUM_REGISTERS; i++) {
 		_registers.at(i) = 0;
 	}
-
-	// LEM
-	/*
-	std::unique_ptr<LEM1820> lemMonitor = std::make_unique<LEM1820>();
-	lemMonitor->init();
-	lemMonitor->setCpu(this);
-
-	_devices.push_back(std::move(lemMonitor));
-	*/
+	
 
 	// Clock
 	std::unique_ptr<Clock> clock = std::make_unique<Clock>();
@@ -46,6 +38,13 @@ Cpu::Cpu() :
 	clock->setCpu(this);
 
 	_devices.push_back(std::move(clock));
+
+	// LEM
+	std::unique_ptr<LEM1820> lemMonitor = std::make_unique<LEM1820>();
+	lemMonitor->init();
+	lemMonitor->setCpu(this);
+
+	_devices.push_back(std::move(lemMonitor));
 }
 
 Cpu::~Cpu()
@@ -76,7 +75,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 	while (1) {
 
-		std::cin.get();
+	//	std::cin.get();
 
 
 
@@ -144,12 +143,12 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 		if (opcode == OP_NONBASIC) {
 			nonbasicOpcode = (nonbasic_opcode)getArgument(instruction, 0);
 
-			aLoc = getValue(aArg, true);
+			aLoc = getValue(aArg, true, false);
 			skipStore = 1;
 		}
 		else {
-			aLoc = getValue(aArg, true);
-			bLoc = getValue(bArg, false);
+			aLoc = getValue(aArg, true, false);
+			bLoc = getValue(bArg, false, false);
 			skipStore = isConst(getArgument(instruction, 0));		// If literal
 		}
 
@@ -636,7 +635,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 }
 
 
-word_t Cpu::getValue(argument_t argument, bool argA)
+word_t Cpu::getValue(argument_t argument, bool argA, bool noSPChange)
 {
 	if (argument < ARG_REG_END) {
 		auto regNum = argument - ARG_REG_START;
@@ -665,8 +664,10 @@ word_t Cpu::getValue(argument_t argument, bool argA)
 		if (argA) {
 			// Pop
 			word_t value = _memory[_stackPointer];
-			_stackPointer = (_stackPointer + 1) & 0xffff;
 
+			if (!noSPChange) {
+				_stackPointer = (_stackPointer + 1) & 0xffff;
+			}
 			return value;
 
 		}
@@ -674,7 +675,9 @@ word_t Cpu::getValue(argument_t argument, bool argA)
 			// Push
 			word_t value = _memory[(_stackPointer - 1) & 0xffff];
 
-			_stackPointer = (_stackPointer - 1) & 0xffff;
+			if (!noSPChange) {
+				_stackPointer = (_stackPointer - 1) & 0xffff;
+			}
 
 			return value;
 		}
@@ -795,12 +798,12 @@ word_t Cpu::skip()
 		if (opcode == OP_NONBASIC) {
 			auto nonbasicOpcode = (nonbasic_opcode)getArgument(instruction, 0);
 
-			aLoc = getValue(aArg, true);
+			aLoc = getValue(aArg, true, true);
 			skipStore = 1;
 		}
 		else {
-			aLoc = getValue(aArg, true);
-			bLoc = getValue(bArg, false);
+			aLoc = getValue(aArg, true, true);
+			bLoc = getValue(bArg, false, true);
 			skipStore = isConst(getArgument(instruction, 0));		// If literal
 		}
 		
