@@ -82,6 +82,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 		word_t executingPC = _programCounter;
 		instruction_t instruction = _memory[_programCounter++];
 
+		/*
 		clearScreen();
 		setCursorPos(0, 0);
 		printf("==== Program Status - CYCLE 0x%04hx====\n", _cycle);
@@ -126,7 +127,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 			temp += 1;
 		}
-
+		*/
 
 
 		// Decode

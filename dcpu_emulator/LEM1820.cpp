@@ -27,6 +27,7 @@ const GLchar* fragmentSource =
 
 LEM1820::LEM1820() :
 
+	_memOffset(0x8000),
 	_cellsHeight(12),
 	_cellsWidth(32),
 	_cellHeight(8),
@@ -104,6 +105,11 @@ bool LEM1820::init()
 				0x0077, 0x0000, 0x4136, 0x0800, 0x0201, 0x0201, 0x704c, 0x7000
 	};
 	
+	_palette = {
+		0x000, 0x00a, 0x0a0, 0x0aa, 0xa00, 0xa0a, 0xa50, 0xaaa,
+		0x555, 0x55f, 0x5f5, 0x5ff, 0xf55, 0xf5f, 0xff5, 0xfff
+	};
+
 	_characterCols.resize(4);
 
 
@@ -339,7 +345,7 @@ void LEM1820::drawCell(word_t x, word_t y, word_t word)
 	auto background = (word & 0xf00) >> 8;
 	auto foreground = (word & 0xf000) >> 12;
 
-	drawGlyph(x, y, foreground, background, glyph);
+	drawGlyph(x, y, _palette[foreground], _palette[background], glyph);
 }
 
 void LEM1820::drawGlyph(word_t x, word_t y, word_t foreground, word_t background, word_t glyph)
@@ -374,10 +380,12 @@ void LEM1820::drawGlyph(word_t x, word_t y, word_t foreground, word_t background
 			auto bit = (_characterCols[(col / 4)] >> (row / 4)) & 0x01;
 
 			if (bit == 1) {
-				
-				_pixelBuffer[index + 0] = (foreground > 0 ? 255 : 0);
-				_pixelBuffer[index + 1] = (foreground > 0 ? 255 : 0);
-				_pixelBuffer[index + 2] = 0;
+				word_t r, g, b;
+				getRGB(foreground, r, g, b);
+
+				_pixelBuffer[index + 0] = r;
+				_pixelBuffer[index + 1] = g;
+				_pixelBuffer[index + 2] = b;
 				_pixelBuffer[index + 3] = 255;
 			}
 			else {

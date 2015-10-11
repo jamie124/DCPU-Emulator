@@ -1,5 +1,7 @@
 #include "StdAfx.h"
 
+#include "Utils.h"
+
 std::string& ltrim(std::string& str)
 {
 	auto it2 = std::find_if(str.begin(), str.end(), [](char ch) { return !std::isspace<char>(ch, std::locale::classic()); });
@@ -71,4 +73,11 @@ std::string toLower(const std::string& input)
 	std::transform(arg.begin(), arg.end(), arg.begin(), ::tolower);
 
 	return arg;
+}
+
+void getRGB(word_t input, word_t& r, word_t& g, word_t& b)
+{
+	r = ((((input & 0xf00) >> 8) * 16) << 16) / 255;
+	g = ((((input & 0x0f0) >> 4) * 16) << 8) / 255;
+	b = (input & 0x00f) * 16;
 }

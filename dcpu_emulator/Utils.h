@@ -25,3 +25,5 @@ unsigned int split(const std::string &txt, std::vector<std::string> &strs, char 
 std::string replace(const std::string& input, char from, char to);
 std::string replaceStr(const std::string& str, const std::string& from, const std::string& to);
 std::string toLower(const std::string& input);
+
+void getRGB(word_t input, word_t& r, word_t& g, word_t& b);
