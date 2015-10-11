@@ -32,11 +32,13 @@ Cpu::Cpu() :
 	}
 
 	// LEM
+	/*
 	std::unique_ptr<LEM1820> lemMonitor = std::make_unique<LEM1820>();
 	lemMonitor->init();
 	lemMonitor->setCpu(this);
 
 	_devices.push_back(std::move(lemMonitor));
+	*/
 
 	// Clock
 	std::unique_ptr<Clock> clock = std::make_unique<Clock>();
@@ -77,8 +79,56 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 		std::cin.get();
 
 
+
 		word_t executingPC = _programCounter;
 		instruction_t instruction = _memory[_programCounter++];
+
+		clearScreen();
+		setCursorPos(0, 0);
+		printf("==== Program Status - CYCLE 0x%04hx====\n", _cycle);
+		printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n",
+			_registers.at(0),
+			_registers.at(1),
+			_registers.at(2));
+		printf("X:  0x%04hx\tY:  0x%04hx\tZ:  0x%04hx\n",
+			_registers.at(3),
+			_registers.at(4),
+			_registers.at(5));
+		printf("I:  0x%04hx\tJ:  0x%04hx\n",
+			_registers.at(6),
+			_registers.at(7));
+		printf("PC: 0x%04hx\tSP: 0x%04hx\tEX:  0x%04hx\n", _programCounter, _stackPointer, _overflow);
+		printf("Instruction: 0x%04hx\n", instruction);
+
+		std::cout << _currentDebugMessage.c_str() << std::endl;
+
+		if (lineMappings.find(executingPC) != lineMappings.end()) {
+			std::cout << lineMappings.at(executingPC) << std::endl;
+		}
+
+		// Print part of stack
+		printf("Stack:\n");
+		for (int i = 0xffff; i > (0xfff0); --i) {
+			printf("0x%04hx,\t", _memory[i]);
+		}
+		printf("\n\n");
+
+		int temp = 0;
+
+		for (int i = 0x0; i < (0x080); ++i) {
+			if (temp == 8) {
+				printf("\n");
+
+				temp = 0;
+			}
+			printf("0x%04hx,\t", _memory[i]);
+
+
+
+			temp += 1;
+		}
+
+
 
 		// Decode
 		opcode opcode = getOpcode(instruction);
@@ -158,12 +208,13 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 			case OP_HWI:
 			{
-				auto& currentDevice = _devices.at(aLoc);
+				if (aLoc < _devices.size()) {
+					auto& currentDevice = _devices.at(aLoc);
 
-				if (currentDevice) {
-					currentDevice->interrupt();
+					if (currentDevice) {
+						currentDevice->interrupt();
+					}
 				}
-
 				_cycle += 4;
 			}
 			break;
@@ -553,7 +604,8 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 		// Skip next instruction if needed
 		if (!performNext) {
-			_programCounter += getInstructionLength(_memory[_programCounter]);
+			_cycle += skip();
+		//	_programCounter += getInstructionLength(_memory[_programCounter], bArg, aArg);
 		}
 
 		if (!skipStore) {
@@ -577,35 +629,7 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 		}
 
 		
-		clearScreen();
-			setCursorPos(0, 0);
-					printf("==== Program Status - CYCLE 0x%04hx====\n", _cycle);
-			printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n",
-				_registers.at(0),
-				_registers.at(1),
-				_registers.at(2));
-			printf("X:  0x%04hx\tY:  0x%04hx\tZ:  0x%04hx\n",
-				_registers.at(3),
-				_registers.at(4),
-				_registers.at(5));
-			printf("I:  0x%04hx\tJ:  0x%04hx\n",
-				_registers.at(6),
-				_registers.at(7));
-			printf("PC: 0x%04hx\tSP: 0x%04hx\tEX:  0x%04hx\n", _programCounter, _stackPointer, _overflow);
-			printf("Instruction: 0x%04hx\n", instruction);
-
-			std::cout << _currentDebugMessage.c_str() << std::endl;
-
-			if (lineMappings.find(executingPC) != lineMappings.end()) {
-				std::cout << lineMappings.at(executingPC) << std::endl;
-			}
-
-			// Print part of stack
-			for (int i = 0xffff; i > (0xfff0); --i) {
-				printf("0x%04hx,\t", _memory[i]);
-			}
-
-		
+	
 	}
 
 	return 1;
@@ -738,15 +762,53 @@ opcode Cpu::getOpcode(instruction_t instruction)
 	return instruction & 0x1F;
 }
 
-argument_t Cpu::getArgument(instruction_t instruction, bool argB)
+argument_t Cpu::getArgument(instruction_t instruction, bool argA)
 {
-	if (argB) {
+	if (argA) {
 		return (instruction >> 10) & 0x3f;
 	}
 	else {
 		return (instruction >> 5) & 0x1f;
 	}
 
+}
+
+word_t Cpu::skip()
+{
+	word_t skipped = 0;
+
+	opcode opcode;
+
+	do {
+		instruction_t instruction = _memory[_programCounter++];
+		 opcode = getOpcode(instruction);
+		
+
+		word_t bLoc;
+		word_t aLoc;
+		bool skipStore;
+
+		auto bArg = getArgument(instruction, false);
+		auto aArg = getArgument(instruction, true);
+
+		
+		if (opcode == OP_NONBASIC) {
+			auto nonbasicOpcode = (nonbasic_opcode)getArgument(instruction, 0);
+
+			aLoc = getValue(aArg, true);
+			skipStore = 1;
+		}
+		else {
+			aLoc = getValue(aArg, true);
+			bLoc = getValue(bArg, false);
+			skipStore = isConst(getArgument(instruction, 0));		// If literal
+		}
+		
+		skipped += 1;
+
+	} while (opcode >= 0x10 && opcode <= 0x17);
+
+	return skipped;
 }
 
 instruction_t Cpu::setOpcode(instruction_t instruction, opcode opcode)
@@ -783,19 +845,20 @@ bool_t Cpu::isConst(argument_t argument)
 }
 
 // How many words does instruction take
-word_t Cpu::getInstructionLength(instruction_t instruction)
+word_t Cpu::getInstructionLength(instruction_t instruction, argument_t argB, argument_t argA)
 {
 	if (getOpcode(instruction) == OP_NONBASIC) {
 		// 1 argument
-		return 1 + usesNextWord(getArgument(instruction, 1));
+		return 1 + usesNextWord(argB);
 	}
 	else {
-		return 1 + usesNextWord(getArgument(instruction, 0)) + usesNextWord(getArgument(instruction, 1));
+		return 1 + usesNextWord(argB) + usesNextWord(argA);
 	}
 }
 
 // Get offset from instruction for next word
-word_t Cpu::getNextWordOffset(instruction_t instruction, bool_t which)
+/*
+word_t Cpu::1(instruction_t instruction, bool_t which)
 {
 	if (getOpcode(instruction) == OP_NONBASIC) {
 		// 1 argument, 1 extra word
@@ -809,7 +872,7 @@ word_t Cpu::getNextWordOffset(instruction_t instruction, bool_t which)
 		return 1 + (which && usesNextWord(getArgument(instruction, 0)));
 	}
 }
-
+*/
 
 word_t Cpu::extendSign(word_t input)
 {

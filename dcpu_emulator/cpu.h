@@ -128,11 +128,13 @@ private:
 	void setValue(argument_t argument, word_t value);
 
 	opcode getOpcode(instruction_t instruction);
-	argument_t getArgument(instruction_t instruction, bool argB);
+	argument_t getArgument(instruction_t instruction, bool argA);
+
+	word_t skip();
 
 	bool_t isConst(argument_t argument);
-	word_t getInstructionLength(instruction_t instruction);
-	word_t getNextWordOffset(instruction_t instruction, bool_t which);
+	word_t getInstructionLength(instruction_t instruction, argument_t argB, argument_t argA);
+	//word_t getNextWordOffset(instruction_t instruction, bool_t which);
 	word_t extendSign(word_t input);
 
 	word_t to16BitSigned(int input);
