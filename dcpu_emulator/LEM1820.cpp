@@ -266,7 +266,7 @@ void LEM1820::update()
 	//}
 
 	if (_cpu->isMemoryDirty()) {
-		auto start_time = std::chrono::high_resolution_clock::now();
+	//	auto start_time = std::chrono::high_resolution_clock::now();
 
 		auto memory = _cpu->getMemory();
 
@@ -286,10 +286,10 @@ void LEM1820::update()
 			GL_RGBA, GL_UNSIGNED_BYTE, &_pixelBuffer[0]);
 	
 
-		auto end_time = std::chrono::high_resolution_clock::now();
-		auto time = end_time - start_time;
+		//auto end_time = std::chrono::high_resolution_clock::now();
+		//auto time = end_time - start_time;
 
-		std::cout << std::chrono::duration_cast<std::chrono::microseconds>(time).count() << " to refresh screen.\n";
+		//std::cout << std::chrono::duration_cast<std::chrono::microseconds>(time).count() << " to refresh screen.\n";
 	}
 
 

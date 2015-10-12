@@ -10,6 +10,7 @@ Started 7-Apr-2012
 #include "StdAfx.h"
 #include "cpu.h"
 
+#include "Lock.h"
 #include "Clock.h"
 #include "LEM1820.h"
 
@@ -45,6 +46,13 @@ Cpu::Cpu() :
 	lemMonitor->setCpu(this);
 
 	_devices.push_back(std::move(lemMonitor));
+
+	// Basic Lock
+	std::unique_ptr<Lock> basicLock = std::make_unique<Lock>();
+	basicLock->init();
+	basicLock->setCpu(this);
+
+	_devices.push_back(std::move(basicLock));
 }
 
 Cpu::~Cpu()
@@ -847,36 +855,6 @@ bool_t Cpu::isConst(argument_t argument)
 	return (argument >= ARG_LITERAL_START && argument < ARG_LITERAL_END)
 		|| argument == ARG_NEXTWORD_LITERAL;
 }
-
-// How many words does instruction take
-word_t Cpu::getInstructionLength(instruction_t instruction, argument_t argB, argument_t argA)
-{
-	if (getOpcode(instruction) == OP_NONBASIC) {
-		// 1 argument
-		return 1 + usesNextWord(argB);
-	}
-	else {
-		return 1 + usesNextWord(argB) + usesNextWord(argA);
-	}
-}
-
-// Get offset from instruction for next word
-/*
-word_t Cpu::1(instruction_t instruction, bool_t which)
-{
-	if (getOpcode(instruction) == OP_NONBASIC) {
-		// 1 argument, 1 extra word
-		return (which == 0) && usesNextWord(getArgument(instruction, 1));
-	}
-	else {
-		if (!usesNextWord(getArgument(instruction, which))) {
-			return 0;
-		}
-
-		return 1 + (which && usesNextWord(getArgument(instruction, 0)));
-	}
-}
-*/
 
 word_t Cpu::extendSign(word_t input)
 {
