@@ -1,0 +1,9 @@
+:test_fn 
+SET X, 20
+SET Y, 30
+SET PC, POP
+
+
+:another_fn
+ADD X, 20
+SET PC, POP

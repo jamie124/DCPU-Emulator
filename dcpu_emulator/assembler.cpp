@@ -328,22 +328,19 @@ argumentStruct_t Assembler::argumentFor(const std::string& arg, bool isB)
 
 
 
-int Assembler::compile(const std::string& filename)
+int Assembler::compile(const std::string& workingDir, const std::string& filename, bool import)
 {
-	std::string compiledFilename = replaceStr(filename, "dasm", "bin");
+	_workingDir = workingDir;
 
-	std::ifstream sourceFile(filename);
+
+	std::ifstream sourceFile(workingDir + "\\" + filename);
 
 	if (!sourceFile.is_open()) {
 		std::cout << "ERROR: Could not open " << filename.c_str() << std::endl;
 		return -1;
 	}
 
-	std::ofstream compiledFile(compiledFilename, std::ios::binary | std::ios::out);
 
-	if (!compiledFile) {
-		std::cout << "ERROR: Could not open " << compiledFilename.c_str() << std::endl;
-	}
 
 	bool foundComment = false;
 	bool finished = false;
@@ -400,6 +397,11 @@ int Assembler::compile(const std::string& filename)
 
 
 			}
+			else if (currentLine[0] == '#') {
+				processImport(currentLine);
+				
+				skipTillNextLine = true;
+			}
 			else {
 				processLine(currentLine, data, label, skipTillNextLine, command, arg1, arg2, false);
 			}
@@ -414,9 +416,6 @@ int Assembler::compile(const std::string& filename)
 					processArg1(command, arg1, address, label, instruction);
 					processArg2(command, arg2, address, label, instruction);
 				}
-
-				//	std::cout << "\tCommand: " << command << " Arg1: " << arg1 << " Arg2: " << arg2 << " Dat: " << data << std::endl;
-
 
 				if (command != "") {
 
@@ -456,6 +455,44 @@ int Assembler::compile(const std::string& filename)
 
 	}
 
+	// Determine actual next address
+	auto& instruction = _instructions[_instructions.size() - 1];
+
+	//address += 1;
+
+	//if (Cpu::usesNextWord(instruction.a.argument)) {
+	//	address++;
+	//}
+
+	//if (Cpu::usesNextWord(instruction.b.argument)) {
+	//	address++;
+	//}
+
+	// Lazy solution for now
+
+	//address -= 1;
+	for (auto& import : _imports) {
+		for (auto& instruction : import) {
+			instruction.address = address;
+		
+			if (instruction.data.size() > 0) {
+				address += instruction.data.size();
+			}
+			else {
+				address += 1;
+
+
+				if (instruction.opcode != 0 && Cpu::usesNextWord(instruction.a.argument)) {
+					address++;
+				}
+
+				if (Cpu::usesNextWord(instruction.b.argument)) {
+					address++;
+				}
+			}
+			_instructions.emplace_back(instruction);
+		}
+	}
 
 	for (auto& instruction : _instructions) {
 
@@ -467,12 +504,12 @@ int Assembler::compile(const std::string& filename)
 
 		// Label reference for A
 		if (instruction.a.labelReference != "") {
-			//std::cout << "Unresolved label for a: " << instruction->a.labelReference << std::endl;
+			std::cout << "Unresolved label for a: " << instruction.a.labelReference << std::endl;
 
 			for (auto& other : _instructions) {
 				if (other.label != "" && (other.label == instruction.a.labelReference)) {
 					// Match
-				//	std::cout << "Resolved " << instruction->a.labelReference << " to address " << other->address << std::endl;
+					std::cout << "Resolved " << instruction.a.labelReference << " to address " << other.address << std::endl;
 					instruction.a.nextWord = other.address;
 					instruction.a.labelReference = "";
 					break;
@@ -482,13 +519,12 @@ int Assembler::compile(const std::string& filename)
 
 		// Label reference for B
 		if (instruction.b.labelReference != "") {
-			//	std::cout << "Unresolved label for b: " << instruction->b.labelReference << std::endl;
+				std::cout << "Unresolved label for b: " << instruction.b.labelReference << std::endl;
 
-		//	for (AssembledInstructionPtr other = head; other != nullptr; other = other->next) {
 			for (auto& other : _instructions) {
 				if (other.label != "" && (other.label == instruction.b.labelReference)) {
 					// Match
-				//	std::cout << "Resolved " << instruction->b.labelReference << " to address " << other->address << std::endl;
+					std::cout << "Resolved " << instruction.b.labelReference << " to address " << other.address << std::endl;
 
 
 					if (!instruction.b.argAlreadySet) {
@@ -517,86 +553,92 @@ int Assembler::compile(const std::string& filename)
 		}
 	}
 
-	std::cout << std::endl;
 
-	// Write out code
-	//for (AssembledInstructionPtr instruction = head; instruction != nullptr; instruction = instruction->next) {
-	for (auto& instruction : _instructions) {
+	// Don't write to file when compiling import.
+	if (!import) {
+		std::string compiledFilename = _workingDir + "\\" + replaceStr(filename, "dasm", "bin");
 
+		// Write out code
+		std::ofstream compiledFile(compiledFilename, std::ios::binary | std::ios::out);
 
-		if (instruction.data.size() > 0) {
-			//std::cout << "DATA: " << instruction.dataLength << " words" << std::endl;
-			for (int i = 0; i < instruction.data.size(); ++i) {
-				compiledFile.write(reinterpret_cast<const char*>(&instruction.data[i]), sizeof word_t);
+		if (!compiledFile) {
+			std::cout << "ERROR: Could not open " << compiledFilename.c_str() << std::endl;
+		}
+		for (auto& instruction : _instructions) {
+
+			if (instruction.data.size() > 0) {
+				for (int i = 0; i < instruction.data.size(); ++i) {
+					compiledFile.write(reinterpret_cast<const char*>(&instruction.data[i]), sizeof word_t);
+				}
+
+				std::cout << string_format("%-66s", instruction.source.c_str(), "") << "(" << instruction.address << ")" << std::endl;
+
+				continue;
 			}
 
-			std::cout << string_format("%s", instruction.source.c_str()) << std::endl;
+			instruction_t packed = 0;
 
-			continue;
+			packed = (instruction.b.argument << 10) | (instruction.a.argument << 5) | instruction.opcode;
+
+			// Save instruction
+			compiledFile.write(reinterpret_cast<const char*>(&packed), sizeof instruction_t);
+
+			std::string strFormat = "%-50s %-4x ";
+
+			bool includeA = false;
+			bool includeB = false;
+
+			if (Cpu::usesNextWord(instruction.b.argument)) {
+				compiledFile.write(reinterpret_cast<const char*>(&instruction.b.nextWord), sizeof word_t);
+
+				strFormat += "%-4x ";
+
+				includeB = true;
+			}
+			else {
+				strFormat += "     ";
+			}
+
+			if (instruction.opcode != OP_NONBASIC && Cpu::usesNextWord(instruction.a.argument)) {
+				compiledFile.write(reinterpret_cast<const char*>(&instruction.a.nextWord), sizeof word_t);
+
+				strFormat += "%-4x ";
+
+				includeA = true;
+			}
+			else {
+				strFormat += "     ";
+			}
+
+
+			std::string sourceLine;
+
+			if (!includeA && includeB) {
+				sourceLine = string_format(strFormat, instruction.source.c_str(), packed, instruction.b.nextWord);
+			}
+			else if (includeA && !includeB) {
+				sourceLine = string_format(strFormat, instruction.source.c_str(), packed, instruction.a.nextWord);
+			}
+
+			else {
+				sourceLine = string_format(strFormat, instruction.source.c_str(), packed, instruction.b.nextWord, instruction.a.nextWord);
+			}
+
+			std::cout << sourceLine << "(" << instruction.address << ")" << std::endl;
+
+			_lineMappings.insert(std::pair<word_t, std::string>(instruction.address, sourceLine));
+
 		}
 
-
-		instruction_t packed = 0;
-
-		packed = (instruction.b.argument << 10) | (instruction.a.argument << 5) | instruction.opcode;
-
-		// Save instruction
-		//std::cout << address << ": Assembled instruction: " << packed << std::endl;
-		compiledFile.write(reinterpret_cast<const char*>(&packed), sizeof instruction_t);
-
-		std::string strFormat = "%-50s %-4x ";
-
-		bool includeA = false;
-		bool includeB = false;
-
-		if (Cpu::usesNextWord(instruction.b.argument)) {
-			//	std::cout << ++address << ": Extra Word B: " << instruction.b.nextWord << std::endl;
-			compiledFile.write(reinterpret_cast<const char*>(&instruction.b.nextWord), sizeof word_t);
-
-			strFormat += "%-4x ";
-
-			includeB = true;
-		}
-		else {
-			strFormat += "     ";
-		}
-
-		if (instruction.opcode != OP_NONBASIC && Cpu::usesNextWord(instruction.a.argument)) {
-			//	std::cout << ++address << ": Extra Word A: " << instruction.a.nextWord << std::endl;
-			compiledFile.write(reinterpret_cast<const char*>(&instruction.a.nextWord), sizeof word_t);
-
-			strFormat += "%-4x ";
-
-			includeA = true;
-		}
-		else {
-			strFormat += "     ";
-		}
-
-
-		std::string sourceLine;
-
-		if (!includeA && includeB) {
-			sourceLine = string_format(strFormat, instruction.source.c_str(), packed, instruction.b.nextWord);
-		}
-		else if (includeA && !includeB) {
-			sourceLine = string_format(strFormat, instruction.source.c_str(), packed, instruction.a.nextWord);
-		}
-
-		else {
-			sourceLine = string_format(strFormat, instruction.source.c_str(), packed, instruction.b.nextWord, instruction.a.nextWord);
-		}
-
-		std::cout << sourceLine << std::endl;
-
-		_lineMappings.insert(std::pair<word_t, std::string>(instruction.address, sourceLine));
-
-
+		compiledFile.close();
 	}
-
 	std::cout << "Program compiled successfully." << std::endl;
 
-	compiledFile.close();
+}
+
+std::vector<assembledInstruction_t> Assembler::getInstructions() const
+{
+	return _instructions;
 }
 
 // Split up the line and work out what values are in it.
@@ -606,11 +648,6 @@ int Assembler::processLine(const std::string& currentLine, std::string& data, st
 {
 	std::string processedLine = currentLine;
 
-	//std::vector<std::string> splitStr;
-
-	//split(currentLine, splitStr, ' ');
-
-	//splitStr.erase(std::remove(splitStr.begin(), splitStr.end(), " "), splitStr.end());
 
 	size_t index;
 
@@ -628,61 +665,16 @@ int Assembler::processLine(const std::string& currentLine, std::string& data, st
 		else {
 			processedLine = trim(processedLine.substr(index));
 		}
-		//label = trim(replace(splitStr[0], ',', ' '));
-		//label = replaceStr(label, ":", "");
-
-		/*
-		if (splitStr.size() == 1) {
-			functionOnNextLine = true;
-			return 1;
-		}
-		else if (splitStr.at(1).find(";") != std::string::npos) {
-			functionOnNextLine = true;
-			return 1;
-		}
-		*/
-
 	}
-
 
 	int offset = (containsLabel ? 1 : 0);
-
-	/*
-	if (splitStr.size() > 1) {
-		command = trim(splitStr[offset]);
-
-		command = toLower(command);
-
-		command = replaceStr(command, ",", "");
-	}
-	else {
-		command = "";
-	}
-	*/
 
 	command = toLower(processedLine.substr(0, 3));
 
 	processedLine = trim(processedLine.substr(processedLine.find(" ")));
 
 	// Check if remaining data belongs to 'dat' command.
-	//int i = strcmp(command, "dat");
-	//if (strcmp(command, "dat") == 0) {
 	if (command == "dat") {
-
-		/*
-		std::string temp = currentLine;
-
-		if (containsLabel) {
-			temp = replaceStr(temp, ":" + label, "");
-
-		}
-
-		if (temp.find(";") != std::string::npos) {
-			temp = temp.substr(0, temp.find(";"));
-		}
-
-		data = trim(replaceStr(temp, "dat", ""));
-		*/
 
 		if (processedLine.find(";") != std::string::npos) {
 			processedLine = processedLine.substr(0, processedLine.find(";"));
@@ -705,17 +697,6 @@ int Assembler::processLine(const std::string& currentLine, std::string& data, st
 			arg1 = trim(processedLine);
 		}
 
-		/*
-		arg1 = trim(replace(splitStr[offset + 1], ',', ' '));
-
-
-		if (splitStr.size() > (offset + 2)) {
-			if (splitStr.at(offset + 2).find(";") == std::string::npos) {
-				arg2 = trim(replaceStr(replaceStr(splitStr[offset + 2], ",", ""), "\t", ""));
-			}
-		}
-		*/
-
 	}
 
 	return 0;
@@ -727,126 +708,13 @@ int Assembler::processCommand(const std::string& command, std::string data, word
 {
 	int i = 0, index = 0;
 
-	//instruction = std::make_shared<assembledInstruction_t>();
 
-	/*
-	if (head == nullptr) {
-		head = instruction;
-		tail = instruction;
-	}
-	else {
-		tail->next = instruction;
-		tail = tail->next;
-	}
-	*/
-
-	//instruction->next = nullptr;
 	instruction.address = address;
 	instruction.label = label;
 
-	//instruction->data = nullptr;
 
 	if (command == "dat") {
-		//	instruction->data = (word_t*)malloc(MAX_CHARS * sizeof(word_t));
-
-			/*
-			while (1) {
-
-				int nextChar = data[index++];
-				if (nextChar == '"') {
-					//std::cout << "Reading string." << std::endl;
-
-					bool_t escaped = 0;
-					while (1) {
-						nextChar = data[index++];
-						char toPut;
-
-						if (escaped) {
-							// Escape translation
-							switch (nextChar) {
-							case 'n':
-								toPut = '\n';
-								break;
-
-							case 't':
-								toPut = '\t';
-								break;
-
-							case '\\':
-								toPut = '\\';
-								break;
-
-							case '"':
-								toPut = '"';
-								break;
-
-							default:
-								std::cout << "ERROR: Unrecognized escape sequence " << nextChar << std::endl;
-								return -1;
-							}
-
-							escaped = 0;
-						}
-						else if (nextChar == '"' || nextChar == '\0') {
-							break;
-						}
-						else if (nextChar == '\\') {
-							escaped = 1;
-							continue;
-						}
-						else {
-							// Normal character
-							toPut = nextChar;
-						}
-
-						instruction->data.push_back(toPut);
-
-					//	instruction->data[instruction->dataLength++] = toPut;
-						std::cout << toPut;
-					}
-
-					std::cout << std::endl;
-				}
-				else {
-					if (index >= data.length()) {
-						break;
-					}
-
-					int nextNextChar = data[index++];
-
-					if (nextNextChar == -1) {
-						break;
-					}
-
-					if (nextChar == '0' && nextNextChar == 'x') {
-						// Revert back 2 chars.
-						data[index - 2];
-
-						// Hex literal
-						std::cout << "Reading hex literal" << std::endl;
-
-						//if (!sscanf(data.c_str(), "0x%hx", &instruction->data[instruction->data.size()]) == 1) {
-						//	std::cout << "ERROR: Expected hex literal" << std::endl;						return -1;
-						//}
-
-					//	instruction->dataLength++;
-					}
-					//else if (sscanf(data.c_str(), "%hu", &instruction->data[instruction->data.size()]) == 1) {
-						// Decimal literal
-					//	std::cout << "Reading decimal literal" << std::endl;
-					//	instruction->dataLength++;
-					//}
-					else {
-						// Not a real literal
-						std::cout << "Out of literals" << std::endl;
-						break;
-					}
-
-				}
-
-			}
-			*/
-
+		
 		std::vector<std::string> splitDat;
 
 		split(data, splitDat, ',');
@@ -895,11 +763,8 @@ int Assembler::processCommand(const std::string& command, std::string data, word
 void Assembler::processArg1(const std::string& command, const std::string& arg, word_t& address, const std::string& label,
 	assembledInstruction_t& instruction)
 {
-
-
 	// Determine opcode
 	instruction.opcode = opcodeFor(command);
-
 
 	// TODO: Change to b
 	instruction.a = argumentFor(arg, true);
@@ -919,9 +784,7 @@ void Assembler::processArg2(const std::string& command, const std::string& arg, 
 	int i = 0;
 
 	bool preserveArg = false;
-	//char tempArg[MAX_CHARS], preservedArg[MAX_CHARS];
 	int j = 0, temp = 0;
-
 
 	if (arg == "") {
 		// No second arg
@@ -946,4 +809,30 @@ void Assembler::processArg2(const std::string& command, const std::string& arg, 
 std::map<word_t, std::string> Assembler::getLineMappings() const
 {
 	return _lineMappings;
+}
+
+void Assembler::processImport(const std::string& currentLine)
+{
+	std::string processedLine = currentLine;
+
+	// Don't include @
+	processedLine = trim(processedLine.substr(1));
+
+	std::vector<std::string> splitStr;
+
+	split(processedLine, splitStr, ' ');
+
+	for (auto& part : splitStr) {
+		std::string temp = trim(part);
+
+		if (temp != "import" && temp != "") {
+			
+			std::unique_ptr<Assembler> assembler = std::make_unique<Assembler>();
+
+			assembler->compile(_workingDir, temp, true);
+
+			_imports.emplace_back(assembler->getInstructions());
+
+		}
+	}
 }

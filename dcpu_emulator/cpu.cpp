@@ -14,6 +14,7 @@ Started 7-Apr-2012
 #include "Clock.h"
 #include "LEM1820.h"
 
+
 Cpu::Cpu() :
 	_programCounter(0),
 	_stackPointer(0),
@@ -83,59 +84,12 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 
 	while (1) {
 
-	//	std::cin.get();
-
-
-
 		word_t executingPC = _programCounter;
 		instruction_t instruction = _memory[_programCounter++];
 
-		/*
-		clearScreen();
-		setCursorPos(0, 0);
-		printf("==== Program Status - CYCLE 0x%04hx====\n", _cycle);
-		printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n",
-			_registers.at(0),
-			_registers.at(1),
-			_registers.at(2));
-		printf("X:  0x%04hx\tY:  0x%04hx\tZ:  0x%04hx\n",
-			_registers.at(3),
-			_registers.at(4),
-			_registers.at(5));
-		printf("I:  0x%04hx\tJ:  0x%04hx\n",
-			_registers.at(6),
-			_registers.at(7));
-		printf("PC: 0x%04hx\tSP: 0x%04hx\tEX:  0x%04hx\n", _programCounter, _stackPointer, _overflow);
-		printf("Instruction: 0x%04hx\n", instruction);
 
-		std::cout << _currentDebugMessage.c_str() << std::endl;
-
-		if (lineMappings.find(executingPC) != lineMappings.end()) {
-			std::cout << lineMappings.at(executingPC) << std::endl;
-		}
-
-		// Print part of stack
-		printf("Stack:\n");
-		for (int i = 0xffff; i > (0xfff0); --i) {
-			printf("0x%04hx,\t", _memory[i]);
-		}
-		printf("\n\n");
-
-		int temp = 0;
-
-		for (int i = 0x0; i < (0x080); ++i) {
-			if (temp == 8) {
-				printf("\n");
-
-				temp = 0;
-			}
-			printf("0x%04hx,\t", _memory[i]);
-
-
-
-			temp += 1;
-		}
-		*/
+	
+		std::cin.get();
 
 
 		// Decode
@@ -636,8 +590,52 @@ int Cpu::run(const std::string& filename, std::map<word_t, std::string> lineMapp
 			start_time = std::chrono::high_resolution_clock::now();
 		}
 
-		
-	
+
+		clearScreen();
+		setCursorPos(0, 0);
+		printf("==== Program Status - CYCLE 0x%04hx====\n", _cycle);
+		printf("A:  0x%04hx\tB:  0x%04hx\tC:  0x%04hx\n",
+			_registers.at(0),
+			_registers.at(1),
+			_registers.at(2));
+		printf("X:  0x%04hx\tY:  0x%04hx\tZ:  0x%04hx\n",
+			_registers.at(3),
+			_registers.at(4),
+			_registers.at(5));
+		printf("I:  0x%04hx\tJ:  0x%04hx\n",
+			_registers.at(6),
+			_registers.at(7));
+		printf("PC: 0x%04hx\tSP: 0x%04hx\tEX:  0x%04hx\n", executingPC, _stackPointer, _overflow);
+		printf("Instruction: 0x%04hx\n", instruction);
+
+		//	std::cout << _currentDebugMessage.c_str() << std::endl;
+
+			if (lineMappings.find(executingPC ) != lineMappings.end()) {
+				std::cout << lineMappings.at(executingPC ) << std::endl;
+			}
+
+		// Print part of stack
+		printf("Stack:\n");
+		for (int i = 0xffff; i > (0xfff0); --i) {
+			printf("0x%04hx,\t", _memory[i]);
+		}
+		printf("\n\n");
+
+		int temp = 0;
+
+		for (int i = 0x0; i < (0x080); ++i) {
+			if (temp == 8) {
+				printf("\n");
+
+				temp = 0;
+			}
+			printf("0x%04hx,\t", _memory[i]);
+
+
+
+			temp += 1;
+		}
+
 	}
 
 	return 1;

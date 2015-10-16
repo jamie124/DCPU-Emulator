@@ -1,0 +1,18 @@
+#import devices.dasm
+
+SET X, known_devices
+SET Y, known_device_count
+SET Z, discovered_devices
+SET A, 1000
+JSR device_discovery
+
+
+:known_devices
+DAT 0xf615, 0x7349, "  X. LEM-1802 Monitor           ", 0
+
+:known_device_count
+DAT 1
+
+:discovered_devices
+DAT 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 
+

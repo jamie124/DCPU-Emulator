@@ -68,11 +68,19 @@ public:
 	Assembler();
 	~Assembler();
 
-	int compile(const std::string& filename);
+	int compile(const std::string& workingDir, const std::string& filename, bool import);
+
+	std::vector<assembledInstruction_t> getInstructions() const;
+
 
 	std::map<word_t, std::string> getLineMappings() const;
 
 private:
+
+	void processImport(const std::string& currentLine);
+
+	std::string _workingDir;
+
 	std::vector<assembledInstruction_t> _instructions;
 
 	std::map<std::string, word_t> _foundLabels;
@@ -80,5 +88,7 @@ private:
 
 	std::map<std::string, opcode> _opcodes;
 	std::map<std::string, nonbasic_opcode> _nonbasicOpcode;
+
+	std::vector<std::vector<assembledInstruction_t>> _imports;
 };
 

@@ -1,0 +1,42 @@
+:device_discovery
+; X = DAT to store known values
+; Y = Number of known devices
+; Z = Discovered devices
+SET PUSH, A
+SET PUSH, B
+
+HWN I
+
+:device_loop
+SET PUSH, X
+SET PUSH, Y
+
+SUB I, 1
+HWQ I
+
+SET C, 0
+
+; Restore
+SET Y, POP
+SET X, POP
+
+:device_loop2
+IFE A, [X]
+	IFE B, [X+1]
+		SET [Z + I], X
+
+ADD J, 35
+ADD C, 1
+
+IFN C, [Y]
+	SET PC, device_loop2
+
+IFE I, 0
+	SET PC, exit
+
+SET PC, device_loop
+
+:exit
+SET B, POP
+SET A, POP
+SET PC, POP
